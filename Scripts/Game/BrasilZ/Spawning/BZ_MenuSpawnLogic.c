@@ -108,31 +108,39 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			}
 		}
 
-		// lifeState DEAD/INCAPACITATED — fallback if death flag missed (e.g., crash mid-write)
-		if (player)
-		{
-			CharacterControllerComponent charController = CharacterControllerComponent.Cast(player.FindComponent(CharacterControllerComponent));
-			if (charController)
-			{
-				ECharacterLifeState lifeState = charController.GetLifeState();
-				if (lifeState == ECharacterLifeState.DEAD || lifeState == ECharacterLifeState.INCAPACITATED)
-				{
-					Print(string.Format("[BrasilZ] Player %1 character is %2 — rejecting", playerId, typename.EnumToString(ECharacterLifeState, lifeState)), LogLevel.NORMAL);
-					player = null;
-					rejectedAsDead = true;
-				}
-			}
-		}
-
-		// Health-based fallback — catches edge case where lifestate didn't restore correctly
+		// Combined lifeState + health check.
+		// lifeState alone is unreliable: CharacterControllerComponent.GetLifeState() returns DEAD
+		// by default before replication/init completes on the freshly loaded entity. Trust only
+		// when health also confirms (<=0 or destroyed). Death flag above is the authoritative anti-ALT+F4.
 		if (player)
 		{
 			SCR_DamageManagerComponent dmgMgr = SCR_DamageManagerComponent.GetDamageManager(player);
-			if (dmgMgr && (dmgMgr.IsDestroyed() || dmgMgr.GetHealth() <= 0))
+			float health = -1;
+			bool destroyed = false;
+			if (dmgMgr)
 			{
-				Print(string.Format("[BrasilZ] Player %1 character has 0 health — rejecting", playerId), LogLevel.NORMAL);
+				health = dmgMgr.GetHealth();
+				destroyed = dmgMgr.IsDestroyed();
+			}
+
+			ECharacterLifeState lifeState = ECharacterLifeState.ALIVE;
+			CharacterControllerComponent charController = CharacterControllerComponent.Cast(player.FindComponent(CharacterControllerComponent));
+			if (charController)
+				lifeState = charController.GetLifeState();
+
+			bool lifeStateDead = (lifeState == ECharacterLifeState.DEAD || lifeState == ECharacterLifeState.INCAPACITATED);
+			bool healthDead = destroyed || (dmgMgr && health <= 0);
+
+			if (healthDead)
+			{
+				Print(string.Format("[BrasilZ] Player %1 character has health<=0 (lifeState=%2) — rejecting", playerId, typename.EnumToString(ECharacterLifeState, lifeState)), LogLevel.NORMAL);
 				player = null;
 				rejectedAsDead = true;
+			}
+			else if (lifeStateDead)
+			{
+				// Health is healthy but lifeState says dead — likely uninitialized state, ignore and accept.
+				Print(string.Format("[BrasilZ] Player %1 lifeState=%2 with health=%3 — treating as transient init state, accepting", playerId, typename.EnumToString(ECharacterLifeState, lifeState), health), LogLevel.WARNING);
 			}
 		}
 
