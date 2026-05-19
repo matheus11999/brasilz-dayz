@@ -111,6 +111,21 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 	//------------------------------------------------------------------------------------------------
 	protected void PostProcessSpawnedPlayer(IEntity spawnedEntity, int playerId)
 	{
+		// Fresh spawn from menu — clear any death flag from previous life so future reconnects work.
+		if (playerId > 0)
+		{
+			string uid = BZ_Utils.GetPlayerUID(playerId);
+			if (!uid.IsEmpty())
+			{
+				BZ_PlayerDeathRegistry registry = BZ_PlayerDeathRegistry.GetInstance();
+				if (registry)
+				{
+					registry.ClearDead(uid);
+					registry.ClearDeadBody(playerId);
+				}
+			}
+		}
+
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 250, false, spawnedEntity);
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 1250, false, spawnedEntity);
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 3000, false, spawnedEntity);

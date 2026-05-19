@@ -118,7 +118,18 @@
 - Itens que nao estiverem na whitelist do `FMSurvivalModPack`/PersistenceConfigGroup podem nao persistir. Para item custom novo persistir, preferir adicionar na whitelist nativa, nao recriar JSON custom de player.
 - Building System 2 deve persistir blocos basicos pelos prefabs com componente de persistencia + `SCR_PersistenceSystem`. Componentes `BLD_BedManagerComponent` e `BLD_DoorRaidManagerComponent` continuam opcionais; SurvivorZ tambem nao usa esses para o basico.
 - `BZ_ClaimedVehicleRegistryComponent`/CarKey2 claimed vehicles esta desativado por enquanto a pedido do usuario. Nao recolocar esse componente no GameMode/layer sem pedir.
-- Manter `BZ_MenuSpawnLogic` e `BZ_SpawnPointSpawnHandlerComponent` para fluxo manual de spawn BrasilZ. O controller fica com disconnect behavior `SAVE`, mas o character fica com `DELETE` para evitar bonecos offline persistidos no mundo depois de restart; validar em servidor se o inventario nativo continua voltando via save de player.
+- Refactor de reconnect/disconnect estilo ReforgedZ:
+  - `BZ_MenuSpawnLogic` agora seta controller `SAVE` e character `SAVE` (antes era `DELETE`). Personagem fica reservado para reconnect.
+  - `BZ_GameMode.OnPlayerDisconnected` salva controller+character via `SCR_PersistenceSystem.Save` e dispara `OverwriteLatestSave(BLOCKING)` para flush imediato.
+  - Se character no disconnect estiver `DEAD`/`INCAPACITATED`: `DecoupleDeadBody`/`DecoupleUnconsciousBody` -> `StopTracking`+`StartTracking` para o corpo virar entidade independente lootavel, sem ser deletado junto com o jogador. Skip do `super.OnPlayerDisconnected` para o body nao ser removido.
+  - `BZ_GameMode.TrackCorpseForCleanup` + `TickCorpseCleanup` (intervalo 60s) deletam corpos apos `m_fCorpseLifetimeSec` (default 1200s = 20min) para nao acumular bonecos no mundo.
+  - `BZ_GameMode.OnPlayerKilled` flagga UID em `BZ_PlayerDeathRegistry`, decopla corpo, salva controller e flusha disco — bloqueia exploit de morrer e ALT+F4 antes do save.
+  - `modded SCR_PlayerController`/`modded SCR_BaseGameMode` nao sao usados; toda logica de disconnect concentrada em `BZ_GameMode`.
+  - Anti-ALT+F4 morrendo: `BZ_Utils.IsCharacterDying(entity)` checa health<=0 ou lifeState DEAD/INCAPACITATED em `OnPlayerDisconnected`; se true, registra death flag persistente.
+  - `modded SCR_ReconnectComponent` (`BZ_ReconnectComponent.c`) sobrescreve `GetReconnectState` para retornar `ENTITY_DISCARDED` se: UID em `BZ_PlayerDeathRegistry`, character INCAPACITATED, ou health<=0. `OnPlayerAuditTimeouted` chama `SaveAndRemoveCharacter` com retry de persistencia ACTIVE (max 10x500ms) + BLOCKING flush antes de deletar.
+  - `BZ_PlayerDeathRegistry` mantem death flag em `$profile:BrasilZ/Deaths/<uid>.flag` (presenca do arquivo = morto). Survive restart. Limpo no `BZ_SpawnPointSpawnHandlerComponent.PostProcessSpawnedPlayer` quando o jogador sobe novo personagem pelo menu BrasilZ.
+  - `BZ_Utils.GetPlayerUID(playerId)` usa `BackendApi.GetPlayerIdentityId` (mesma fonte que o ReforgedZ).
+- Permanece valido: nao reativar JSON de inventario/posicao em `$profile:BrasilZ/Players`. A pasta nova `$profile:BrasilZ/Deaths` so guarda flag minima, nao snapshot de inventario.
 
 ## Loading screen
 
