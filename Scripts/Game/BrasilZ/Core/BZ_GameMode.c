@@ -246,6 +246,7 @@ class BZ_GameMode : SCR_BaseGameMode
 
 			m_mPendingBodyDelete.Set(playerId, playerEntity);
 			GetGame().GetCallqueue().CallLater(DeleteAliveDisconnectBody, ALIVE_DISCONNECT_BODY_LIFETIME_MS, false, playerId);
+			Print(string.Format("[BrasilZ][Disconnect] Player %1 alive disconnect — body will linger %2s then despawn.", playerId, ALIVE_DISCONNECT_BODY_LIFETIME_MS / 1000), LogLevel.NORMAL);
 
 			// Replicate super manually, skipping the engine character-cleanup path.
 			m_OnPlayerDisconnected.Invoke(playerId, cause, timeout);
@@ -272,7 +273,10 @@ class BZ_GameMode : SCR_BaseGameMode
 		m_mPendingBodyDelete.Remove(playerId);
 
 		if (entity)
+		{
 			RplComponent.DeleteRplEntity(entity, false);
+			Print(string.Format("[BrasilZ][Disconnect] Player %1 lingering body deleted after timer.", playerId), LogLevel.NORMAL);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -289,7 +293,10 @@ class BZ_GameMode : SCR_BaseGameMode
 		GetGame().GetCallqueue().Remove(DeleteAliveDisconnectBody);
 
 		if (entity)
+		{
 			RplComponent.DeleteRplEntity(entity, false);
+			Print(string.Format("[BrasilZ][Disconnect] Player %1 reconnected within window — old body removed early.", playerId), LogLevel.NORMAL);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
