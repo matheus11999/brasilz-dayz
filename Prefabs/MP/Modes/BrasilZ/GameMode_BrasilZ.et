@@ -41,6 +41,11 @@ BZ_GameMode {
   }
   SCR_SupportStationManagerComponent "{695B5135602F8702}" {
   }
+  BZ_RestartComponent "{695B7335262CB500}" {
+   m_sRestartHoursUTC "0,4,8,12,16,20"
+   m_iMinUptimeSec 7200
+   m_iPollIntervalMs 10000
+  }
   RplComponent "{2F06E49B7FEA9791}" {
    Streamable Disabled
   }
