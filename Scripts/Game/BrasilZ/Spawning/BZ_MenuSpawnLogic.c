@@ -8,11 +8,15 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	//------------------------------------------------------------------------------------------------
 	void BZ_MenuSpawnLogic()
 	{
-		// CRITICAL: SAVE both controller and character so players persist across disconnects
-		// and can reconnect to their existing entity. Corpse cleanup is handled by
-		// BZ_GameMode.TrackCorpseForCleanup so dead bodies don't accumulate.
+		// Controller SAVE keeps the player slot so persistence reloads them on reconnect.
+		// Character DELETE removes the live body from the world on alive disconnect so it
+		// doesn't sit visible until the SCR_ReconnectComponent audit timeout (the prefab
+		// doesn't ship that component, so without DELETE the body would linger forever).
+		// Dead/INCAPACITATED disconnect is intercepted in BZ_GameMode.OnPlayerDisconnected
+		// BEFORE super: decouple gives the corpse an independent persistence ID and skips
+		// super entirely, so the lootable body stays in world regardless of this setting.
 		m_eDisconnectPlayerControllerBehaviour = SCR_ESpawnLogicDisconnectBehaviour.SAVE;
-		m_eDisconnectCharacterBehaviour = SCR_ESpawnLogicDisconnectBehaviour.SAVE;
+		m_eDisconnectCharacterBehaviour = SCR_ESpawnLogicDisconnectBehaviour.DELETE;
 		m_sForcedFaction = "CIV";
 		m_bWaitForSpawnPoints = true;
 		m_fDeployMenuOpenDelay = 4.0;
