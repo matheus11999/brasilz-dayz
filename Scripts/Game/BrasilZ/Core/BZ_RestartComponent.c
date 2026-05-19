@@ -271,7 +271,28 @@ class BZ_RestartComponent : ScriptComponent
 	protected void Broadcast(string message)
 	{
 		Print(string.Format("[BrasilZ][Restart] %1", message), LogLevel.NORMAL);
-		BZ_BroadcastHelper.SendServerMessage(message);
+
+		if (!Replication.IsServer())
+			return;
+
+		Rpc(RpcDo_ShowMessage, message);
+		// Also show locally on server-host (Broadcast RPC skips the sender).
+		RpcDo_ShowMessage(message);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
+	protected void RpcDo_ShowMessage(string messageContent)
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+
+		SCR_ChatComponent chatComponent = SCR_ChatComponent.Cast(pc.FindComponent(SCR_ChatComponent));
+		if (!chatComponent)
+			return;
+
+		chatComponent.ShowMessage(string.Format("[SERVER] %1", messageContent));
 	}
 
 	//------------------------------------------------------------------------------------------------
