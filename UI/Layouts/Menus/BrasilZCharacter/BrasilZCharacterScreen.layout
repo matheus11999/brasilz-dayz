@@ -1,0 +1,166 @@
+FrameWidgetClass {
+ Name "BrasilZ_CharacterSelect"
+ Slot FrameWidgetSlot "{5866A9C3B09405BE}" {
+  Anchor 0 0 1 1
+  OffsetLeft 0
+  OffsetTop 0
+  OffsetRight 0
+  OffsetBottom 0
+ }
+ "Z Order" 100000
+ {
+  ImageWidgetClass "{65AA11519469AECF}" {
+   Name "BZ_Background"
+   Slot FrameWidgetSlot "{5846E4237EACF530}" {
+    Anchor 0 0 1 1
+    OffsetLeft 0
+    OffsetTop 0
+    OffsetRight 0
+    OffsetBottom 0
+   }
+   Color 1 1 1 1
+   Texture "{695BCAFE10203044}UI/Images/BrasilZ_SpawnScreen.imageset"
+   Image "Background"
+   Size 1920 1080
+  }
+  ImageWidgetClass "{695B6C2000000001}" {
+   Name "BZ_Shade"
+   Slot FrameWidgetSlot "{695B6C2000000002}" {
+    Anchor 0 0 1 1
+    OffsetLeft 0
+    OffsetTop 0
+    OffsetRight 0
+    OffsetBottom 0
+   }
+   Color 0 0 0 0.35
+  }
+  FrameWidgetClass "{695B6C2000000003}" {
+   Name "BZ_Panel"
+   Slot FrameWidgetSlot "{695B6C2000000004}" {
+    Anchor 0.68 0.12 0.96 0.88
+    OffsetLeft 0
+    OffsetTop 0
+    OffsetRight 0
+    OffsetBottom 0
+   }
+   {
+    ImageWidgetClass "{695B6C2000000005}" {
+     Name "BZ_PanelBg"
+     Slot FrameWidgetSlot "{695B6C2000000006}" {
+      Anchor 0 0 1 1
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+     Color 0.015 0.02 0.018 0.88
+    }
+    TextWidgetClass "{695B6C2000000007}" {
+     Name "BZ_Title"
+     Slot FrameWidgetSlot "{695B6C2000000008}" {
+      Anchor 0.08 0.04 0.92 0.12
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+     Text "Escolha Uma Opcao"
+     "Font Size" 34
+     "Horizontal Alignment" Center
+     "Vertical Alignment" Center
+    }
+    ItemPreviewWidgetClass "{695B6C2000000009}" {
+     Name "BZ_CharacterPreview"
+     Slot FrameWidgetSlot "{695B6C2000000010}" {
+      Anchor 0.12 0.15 0.88 0.68
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+    }
+    TextWidgetClass "{695B6C2000000011}" {
+     Name "BZ_Selection"
+     Slot FrameWidgetSlot "{695B6C2000000012}" {
+      Anchor 0.08 0.70 0.92 0.76
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+     Text "Masculino"
+     "Font Size" 28
+     "Horizontal Alignment" Center
+     "Vertical Alignment" Center
+    }
+    ButtonWidgetClass "{695B6C2000000013}" {
+     Name "BZ_MaleButton"
+     Slot FrameWidgetSlot "{695B6C2000000014}" {
+      Anchor 0.08 0.79 0.48 0.88
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+     Color 0.12 0.18 0.16 0.95
+     {
+      TextWidgetClass "{695B6C2000000015}" {
+       Name "BZ_MaleText"
+       Slot ButtonWidgetSlot "{695B6C2000000016}" {
+       }
+       Text "Masculino"
+       "Font Size" 24
+       "Horizontal Alignment" Center
+       "Vertical Alignment" Center
+      }
+     }
+    }
+    ButtonWidgetClass "{695B6C2000000017}" {
+     Name "BZ_FemaleButton"
+     Slot FrameWidgetSlot "{695B6C2000000018}" {
+      Anchor 0.52 0.79 0.92 0.88
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+     Color 0.12 0.18 0.16 0.95
+     {
+      TextWidgetClass "{695B6C2000000019}" {
+       Name "BZ_FemaleText"
+       Slot ButtonWidgetSlot "{695B6C2000000020}" {
+       }
+       Text "Feminino"
+       "Font Size" 24
+       "Horizontal Alignment" Center
+       "Vertical Alignment" Center
+      }
+     }
+    }
+    ButtonWidgetClass "{695B6C2000000021}" {
+     Name "BZ_SpawnButton"
+     Slot FrameWidgetSlot "{695B6C2000000022}" {
+      Anchor 0.08 0.91 0.92 0.98
+      OffsetLeft 0
+      OffsetTop 0
+      OffsetRight 0
+      OffsetBottom 0
+     }
+     Color 0.89 0.62 0.18 1
+     {
+      TextWidgetClass "{695B6C2000000023}" {
+       Name "BZ_SpawnText"
+       Slot ButtonWidgetSlot "{695B6C2000000024}" {
+       }
+       Color 0.05 0.04 0.025 1
+       Text "Spawnar"
+       "Font Size" 25
+       "Horizontal Alignment" Center
+       "Vertical Alignment" Center
+      }
+     }
+    }
+   }
+  }
+ }
+}

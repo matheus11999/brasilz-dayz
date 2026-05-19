@@ -1,0 +1,23 @@
+$grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastructure/Lamps/LampStreet_E_01/E_LampStreet_E_01_6m.et" {
+ BrasilZ_ShopNightLamp_01 {
+  coords 5421.112 299.504 5652.914
+  angles 0 56.108 0
+ }
+ BrasilZ_ShopNightLamp_02 {
+  coords 5425.297 299.504 5656.106
+  angles 0 56.108 0
+ }
+ BrasilZ_ShopNightLamp_03 {
+  coords 5417.055 299.504 5656.312
+  angles 0 56.108 0
+ }
+ BrasilZ_ShopNightLamp_2 {
+  components {
+   MeshObject "{5556B912BDDA5193}" {
+    Object "{B99EFC64780EB5C0}Assets/Structures/BuildingsParts/Lights/LampIndustrial_05/LampIndustrial_05_glass_off.xob"
+   }
+  }
+  coords 5453.807 66.117 5561.387
+  angles 0 56.108 0
+ }
+}

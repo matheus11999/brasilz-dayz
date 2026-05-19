@@ -1,0 +1,50 @@
+BZ_GameMode {
+ ID "0D527508B3F69C92"
+ components {
+  BZ_RespawnSystemComponent "{230D3D03C513A112}" {
+   components {
+    BZ_SpawnPointSpawnHandlerComponent "{46FBAB76AC42072F}" {
+    }
+    SCR_FreeSpawnHandlerComponent "{572CC46CEEEA6DF6}" {
+    }
+    SCR_PossessSpawnHandlerComponent "{5B6D422F53CC9251}" {
+    }
+    SCR_SpawnHandlerComponent "{7A6C0E4E0D524A4B}" {
+    }
+   }
+   m_SpawnLogic BZ_MenuSpawnLogic "{695B7335262CB201}" {
+   }
+   m_aDefaultCharacterPrefabs {
+    "{748B185D87E782EE}Prefabs/Characters/Character_BrasilZ_Survivor.et"
+    "{B70400000000A001}Prefabs/Characters/Character_BrasilZ_Survivor_M70.et"
+    "{B70400000000A002}Prefabs/Characters/Character_BrasilZ_Survivor_M88.et"
+    "{B70400000000A003}Prefabs/Characters/Character_BrasilZ_Survivor_BDU.et"
+    "{B70400000000A004}Prefabs/Characters/Character_BrasilZ_Survivor_Worker.et"
+   }
+  }
+  FM_PersonalLockerManagerComponent "{B703000000000004}" {
+   m_LockerPrefab "{B02EA50D6E2DA1DB}Prefabs/Storage/FM_PersonalLocker.et"
+  }
+  SCR_DestructionManagerComponent "{258B34C52AD2128C}" {
+  }
+  BZ_GroupsManagerComponent "{695B7335262CB403}" {
+   m_sDefaultGroupPrefab "{8B4D49A9F324E7D5}Prefabs/Groups/PlayableGroup.et"
+   m_iPlayableGroupFrequencyOffset 200
+   m_iPlayableGroupFrequencyMax 44400
+  }
+  SCR_HintManagerComponent "{59A268576D56E32A}" {
+  }
+  SCR_MapConfigComponent "{695B7335262CB401}" {
+   m_sGadgetMapConfigPath "{1B8AC767E06A0ACD}Configs/Map/MapFullscreen.conf"
+  }
+  SCR_MapMarkerManagerComponent "{695B7335262CB402}" {
+  }
+  SCR_SupportStationManagerComponent "{695B5135602F8702}" {
+  }
+  RplComponent "{2F06E49B7FEA9791}" {
+   Streamable Disabled
+  }
+ }
+ coords 0 0 0
+ PlayerControllerPrefab "{B70300000000C000}Prefabs/Characters/Core/BrasilZ_PlayerControllerMP.et"
+}

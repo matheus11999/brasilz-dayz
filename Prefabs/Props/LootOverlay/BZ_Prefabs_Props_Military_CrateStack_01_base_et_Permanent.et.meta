@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{56ECA73515E7E648}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_CrateStack_01_base_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

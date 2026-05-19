@@ -1,0 +1,261 @@
+GenericEntity BrasilZ_MapMarker_SafeZoneTrader {
+ components {
+  SCR_MapDescriptorComponent "{527892B6ED748CEB}" {
+   DisplayName "Trader"
+   MainType "Name Town"
+  }
+ }
+ coords 5403.675 299.438 5634.716
+}
+$grp ParticleEffectEntity {
+ {
+  coords 5372.122 309.777 5615.59
+  EffectPath "{B073169BAA0BDD62}Particles/Logistics/Fire/Ammunition_Fire/Ammunition_Fire_Medium.ptc"
+ }
+ {
+  coords 5350.063 322.675 5651.897
+  EffectPath "{B073169BAA0BDD62}Particles/Logistics/Fire/Ammunition_Fire/Ammunition_Fire_Medium.ptc"
+ }
+ {
+  coords 5406.452 323.508 5690.178
+  EffectPath "{B073169BAA0BDD62}Particles/Logistics/Fire/Ammunition_Fire/Ammunition_Fire_Medium.ptc"
+ }
+ {
+  coords 5455.218 321.93 5614.85
+  EffectPath "{B073169BAA0BDD62}Particles/Logistics/Fire/Ammunition_Fire/Ammunition_Fire_Medium.ptc"
+ }
+ {
+  coords 5398.685 321.457 5577.711
+  EffectPath "{B073169BAA0BDD62}Particles/Logistics/Fire/Ammunition_Fire/Ammunition_Fire_Medium.ptc"
+ }
+}
+ZEL_SafeZoneEntity BrasilZ_SafeZone_TraderHub {
+ components {
+  RplComponent "{B70100000000D011}" {
+  }
+ }
+ coords 5403.675 299.438 5634.716
+ TriggerShapeType Sphere
+ SphereRadius 260
+ BoxMaxs 10 10 10
+ DrawShape 1
+ ShapeColor 0 0.1255 0.502 1
+ TriggerActivationType "All changes"
+ PeriodicQueries 1
+ m_RemovalDelay 10
+ m_DisableFunction "DisableGodMode"
+}
+SCR_DestructibleBuildingEntity BrasilZ_TraderHub_Pub : "{0B1B8B16E7E9481F}Prefabs/Props/Structures/PubVillage_E_2L01_Base.et" {
+ coords 5426.09 0.067 5655.264
+ angles 0 56.108 0
+ {
+  GenericEntity {
+   ID "68F5486D92618310"
+   coords -7.099 1.071 -2.766
+   angles 0 179.54 0
+  }
+  GenericEntity {
+   ID "555CCC8680C559BD"
+   {
+    GenericEntity {
+     ID "5668D20503330112"
+     components {
+      ActionsManagerComponent "{F32B667C3C823800}" {
+       Enabled 0
+      }
+     }
+    }
+   }
+  }
+ }
+}
+$grp SCR_DestructibleBuildingEntity : "{1D70DE614FFACFE0}Prefabs/Structures/Culture/Castle/Castle Tower 01.et" {
+ {
+  coords 5398.43 0.241 5577.731
+  angles 0.771 -33.363 -0.607
+ }
+ {
+  coords 5406.602 2.298 5690.504
+  angles 0.771 -33.363 -0.607
+ }
+ {
+  coords 5455.507 0.72 5615.212
+  angles 0.771 -33.363 -0.607
+ }
+ {
+  coords 5349.505 2.532 5652.484
+  angles 0.771 -33.363 -0.607
+ }
+}
+SCR_DestructibleBuildingEntity BrasilZ_TraderHub_Gatehouse : "{43A29CB361BBBA26}Prefabs/Structures/Culture/Castle/CastleGatehouse.et" {
+ coords 5370.96 0.007 5617.078
+ angles 0.605 56.774 0.773
+}
+$grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastructure/Lamps/LampStreet_E_01/E_LampStreet_E_01_6m.et" {
+ {
+  coords 5370.042 0 5628.719
+ }
+ {
+  coords 5382.838 0 5610.302
+ }
+ {
+  coords 5393.306 0 5652.374
+ }
+ {
+  coords 5375.318 0 5622.493
+ }
+ {
+  coords 5411.15 0 5615.976
+ }
+ {
+  coords 5378.872 0 5617.43
+ }
+ {
+  coords 5369.686 0 5648.915
+ }
+ {
+  coords 5374.977 0 5652.029
+ }
+ {
+  coords 5380.293 0 5655.871
+ }
+ {
+  coords 5404.515 0 5680.665
+ }
+ {
+  coords 5369.895 0 5605.404
+ }
+ {
+  coords 5361.474 -0.106 5619.422
+ }
+ {
+  coords 5364.134 0 5645.219
+ }
+ {
+  coords 5386.088 0 5659.717
+ }
+ {
+  coords 5395.182 0 5632.721
+ }
+ {
+  coords 5431.695 0 5647.962
+ }
+ {
+  coords 5383.608 0 5665.591
+ }
+ {
+  coords 5364.928 -0.353 5666.264
+ }
+ {
+  coords 5429.749 0 5593.007
+ }
+ {
+  coords 5407.182 0 5578.695
+ }
+ {
+  coords 5418.821 0 5661.802
+ }
+ {
+  coords 5389.187 0.984 5597.635
+ }
+ {
+  coords 5371.549 -0.59 5670.62
+ }
+ {
+  coords 5411.402 0 5628.331
+ }
+ {
+  coords 5412.2 0 5655.244
+ }
+ {
+  coords 5447.146 0 5624.275
+ }
+ {
+  coords 5418.097 0 5639.989
+ }
+ {
+  coords 5434.04 0 5630.603
+ }
+ {
+  coords 5450.315 0 5607.904
+ }
+ {
+  coords 5405.141 0 5642.646
+ }
+}
+SCR_DestructibleBuildingEntity BrasilZ_TraderHub_Garage : "{9D656741EA2AABC5}Prefabs/Structures/Industrial/Garages/Garage_E_02/Garage_E_02_base.et" {
+ coords 5369.804 0.031 5660.491
+ angles 0 146.076 0
+}
+$grp SCR_DestructibleBuildingEntity : "{C4592FC281766885}Prefabs/Structures/Culture/Castle/Castle wall 20.et" {
+ {
+  coords 5372.982 0.594 5676.222
+  angles 0.493 -34.162 -0.721
+ }
+ {
+  coords 5389.009 0.852 5686.833
+  angles 0.068 -33.079 -0.712
+ }
+ {
+  coords 5377.627 -0.427 5597.42
+  angles -0.602 -122.977 -0.775
+ }
+ {
+  coords 5420.965 0.761 5680.298
+  angles -0.524 57.867 0.768
+ }
+ {
+  coords 5414.638 -1.085 5580.666
+  angles -2.278 147.358 0.661
+ }
+ {
+  coords 5356.945 0.438 5629.423
+  angles -0.586 -121.756 -0.788
+ }
+ {
+  coords 5445.162 -0.71 5600.817
+  angles -2.265 146.299 0.703
+ }
+ {
+  coords 5430.75 -0.908 5591.146
+  angles -2.265 146.28 0.704
+ }
+ {
+  coords 5358.65 0.832 5666.436
+  angles 0.493 -34.143 -0.721
+ }
+ {
+  coords 5384.428 -0.859 5587.337
+  angles -1.592 -123.407 -0.771
+ }
+ {
+  coords 5350.765 1.233 5638.843
+  angles -0.605 -123.21 -0.773
+ }
+ {
+  coords 5442.234 0.087 5647.21
+  angles -0.512 57.014 0.775
+ }
+ {
+  coords 5431.673 0.453 5663.48
+  angles -0.512 57.014 0.775
+ }
+ {
+  coords 5452.31 -0.168 5631.681
+  angles -0.512 57.014 0.775
+ }
+}
+$grp StaticModelEntity : "{D4ABEC6A0DB2E253}PrefabsEditable/Auto/Compositions/Misc/SubCompositions/Utility/E_Helipad_Lights_US_01.et" {
+ {
+  coords 5431.849 0 5614.084
+  angles 0 -33.143 0
+ }
+ {
+  coords 5409.326 0 5598.96
+  angles 0 -33.517 0
+ }
+ {
+  coords 5393.043 0 5673.902
+  angles 0 146.871 0
+ }
+}

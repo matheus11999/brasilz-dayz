@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{3AF5CF27883F1A1F}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_Kitchen_02_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

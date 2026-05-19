@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et"
+ Configurations {
+  EntityResourceClass PC {
+  }
+  EntityResourceClass XBOX_ONE : PC {
+  }
+  EntityResourceClass XBOX_SERIES : PC {
+  }
+  EntityResourceClass PS4 : PC {
+  }
+  EntityResourceClass PS5 : PC {
+  }
+  EntityResourceClass HEADLESS : PC {
+  }
+  EntityResourceClass Xbox : PC {
+  }
+ }
+}

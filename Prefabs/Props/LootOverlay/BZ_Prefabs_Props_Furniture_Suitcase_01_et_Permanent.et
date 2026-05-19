@@ -1,0 +1,65 @@
+GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  RplComponent "{5624A88DC2D9928D}" {
+   Enabled 1
+   "Parent Node From Parent Entity" 0
+  }
+  FM_CatalogLootSpawnerComponent "{68EC40F866934F48}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68EC40F815EC95E5}" {
+     m_sCatalogResource "{BB12292052E2F5B8}Configs/EntityCatalog/FMCatalog/InventoryItems_EntityCatalog_Factionless.conf"
+     m_eAllowedTypes 134414340
+     m_fSpawnChance 0.55
+     m_bTier1 1
+    }
+   }
+   m_fLootLifetime 0
+  }
+  FM_SearchableContainerComponent "{68FC02D2677C8F6B}" {
+   Enabled 0
+  }
+  ActionsManagerComponent "{68EC40F861558DAC}" {
+   ActionContexts {
+    UserActionContext "{68EC40F82696C652}" {
+     ContextName "def"
+     Position PointInfo "{68EC40F82AEBBB02}" {
+      Offset 0 0.2366 0
+     }
+     Radius 0.5
+    }
+   }
+   additionalActions {
+    FM_CatalogLootAction "{68EC40F8D2707C8C}" {
+     ParentContextList {
+      "def"
+     }
+     UIInfo UIInfo "{687F721C8A03E7A3}" {
+      Name "#AR-UserAction_Loot"
+     }
+     Duration 0.5
+     m_AudioSourceConfiguration SCR_AudioSourceConfiguration "{68EC0AD228A7AD76}" {
+      m_sSoundProject "{18F8F27DB6AF204F}Sounds/Items/_SharedData/Open/Backpack_Veshmeshok/Items_Backpack_Veshmeshok.acp"
+      m_sSoundEventName "SOUND_CONTAINER_CLOSE"
+     }
+    }
+   }
+  }
+  ActionsManagerComponent "{68FC02D2015A2FA7}" {
+   Enabled 0
+  }
+  SCR_UniversalInventoryStorageComponent "{B704100000000007}" {
+   Attributes SCR_ItemAttributeCollection "{B704100000000008}" {
+    m_bDraggable 0
+    m_bVisible 0
+    m_bStackable 0
+    m_bRefundable 0
+   }
+   UseCapacityCoefficient 0
+   MaxCumulativeVolume 9223372036854775808
+   m_fMaxWeight 35
+  }
+  SCR_InventoryStorageManagerComponent "{B704100000000009}" {
+  }
+ }
+}

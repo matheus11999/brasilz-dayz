@@ -1,0 +1,252 @@
+// Generated BrasilZ loot overlay for military.
+// Source positions: ChernarusMinusBeta layers. Edit in Workbench for final interior placement.
+$grp GenericEntity : "{11117E7A0F7D1C53}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_BunkBed_01_et_Permanent.et" {
+ BZ_Loot_military_001 {
+  coords 7928.600 260.442 14595.370
+  angles 0 -87.073 0
+ }
+ BZ_Loot_military_002 {
+  coords 1672.730 0.615 14012.899
+  angles 0 160.095 0
+ }
+ BZ_Loot_military_003 {
+  coords 3977.957 0.000 11620.625
+  angles 0 34.855 0
+ }
+ BZ_Loot_military_004 {
+  coords 9772.002 -0.632 13902.725
+  angles 0 184.068 0
+ }
+ BZ_Loot_military_005 {
+  coords 4569.430 7.203 2472.105
+  angles 0 72.643 0
+ }
+ BZ_Loot_military_006 {
+  coords 12159.755 -0.051 12605.964
+  angles 0 56.565 0
+ }
+}
+$grp GenericEntity : "{9703AF048F48530B}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_BunkBed_01_Double_et_Permanent.et" {
+ BZ_Loot_military_007 {
+  coords 3461.510 0.721 14784.173
+  angles 0 -111.304 0
+ }
+ BZ_Loot_military_008 {
+  coords 594.389 1.111 13655.803
+  angles 0 191.163 0
+ }
+ BZ_Loot_military_009 {
+  coords 3569.280 1.050 13072.879
+  angles 0 178.016 0
+ }
+ BZ_Loot_military_010 {
+  coords 1151.640 189.156 7233.441
+  angles 0 -51.220 0
+ }
+ BZ_Loot_military_011 {
+  coords 4700.736 0.000 2463.189
+  angles 0 -48.992 0
+ }
+ BZ_Loot_military_012 {
+  coords 11979.567 0.242 12674.202
+  angles 0 200.275 0
+ }
+}
+$grp GenericEntity : "{D7410D3C55E205ED}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_CabinetMetal_01_Base_et_Permanent.et" {
+ BZ_Loot_military_013 {
+  coords 7730.821 0.077 14843.383
+  angles 0 126.602 0
+ }
+ BZ_Loot_military_014 {
+  coords 8604.121 0.000 13099.779
+  angles 0 168.844 0
+ }
+ BZ_Loot_military_015 {
+  coords 4155.628 0.000 11777.278
+  angles 0 68.925 0
+ }
+ BZ_Loot_military_016 {
+  coords 3798.337 0.310 12981.300
+  angles 0 -21.483 0
+ }
+ BZ_Loot_military_017 {
+  coords 10488.614 170.264 9130.690
+  angles 0 118.853 0
+ }
+ BZ_Loot_military_018 {
+  coords 4719.903 0.660 10219.138
+  angles 0 57.874 0
+ }
+}
+$grp GenericEntity : "{56ECA73515E7E648}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_CrateStack_01_base_et_Permanent.et" {
+ BZ_Loot_military_019 {
+  components {
+   RplComponent "{B70400000000D019}" {
+    "Parent Node From Parent Entity" 0
+   }
+  }
+  coords 7817.594 262.948 14694.462
+  angles 0 169.889 0
+ }
+ BZ_Loot_military_020 {
+  coords 7707.700 -0.209 13321.045
+  angles 0 176.210 0
+ }
+ BZ_Loot_military_021 {
+  coords 1504.380 0.211 12003.271
+  angles 0 189.158 0
+ }
+ BZ_Loot_military_022 {
+  coords 11192.434 0.000 14415.859
+  angles 0 -163.000 0
+ }
+ BZ_Loot_military_023 {
+  coords 1882.960 123.898 3437.497
+  angles 0 -43.313 0
+ }
+ BZ_Loot_military_024 {
+  coords 4546.927 0.000 9872.956
+  angles 0 -78.094 0
+ }
+}
+$grp GenericEntity : "{2CBF9DB54D5E8E20}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_TableMilitary_USSR_02_et_Permanent.et" {
+ BZ_Loot_military_025 {
+  coords 7812.065 0.000 14560.286
+  angles 0 -110.811 0
+ }
+ BZ_Loot_military_026 {
+  coords 3651.977 0.266 14946.957
+  angles 0 -101.714 0
+ }
+ BZ_Loot_military_027 {
+  coords 464.847 432.719 11162.230
+  angles 0 39.190 0
+ }
+ BZ_Loot_military_028 {
+  coords 11569.707 0.738 14822.255
+  angles 0 137.156 0
+ }
+ BZ_Loot_military_029 {
+  coords 2208.493 0.000 3270.661
+  angles 0 -38.333 0
+ }
+ BZ_Loot_military_030 {
+  coords 4627.888 0.180 9660.217
+  angles 0 -45.124 0
+ }
+}
+$grp GenericEntity : "{24AEF42F106EF5C5}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_TableMilitary_USSR_02_cabinet_et_Permanent.et" {
+ BZ_Loot_military_031 {
+  coords 1421.031 -0.047 13652.509
+  angles 0 -102.780 0
+ }
+ BZ_Loot_military_032 {
+  coords 5726.310 -0.001 15167.874
+  angles 0 221.432 0
+ }
+ BZ_Loot_military_033 {
+  coords 5038.853 162.451 12745.638
+  angles 0 51.509 0
+ }
+ BZ_Loot_military_034 {
+  coords 11334.294 92.713 14671.875
+  angles 0 51.000 0
+ }
+ BZ_Loot_military_035 {
+  coords 2138.619 0.490 3377.224
+  angles 0 -156.855 0
+ }
+ BZ_Loot_military_036 {
+  coords 4628.433 -0.001 10488.013
+  angles 0 111.397 0
+ }
+}
+$grp GenericEntity : "{F7A9DF4432372801}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_TableMilitary_US_02_et_Permanent.et" {
+ BZ_Loot_military_037 {
+  coords 1575.547 460.327 14114.215
+  angles 0 -0.543 0
+ }
+ BZ_Loot_military_038 {
+  coords 3675.289 0.001 14826.610
+  angles 0 168.813 0
+ }
+ BZ_Loot_military_039 {
+  coords 11540.156 0.366 14457.061
+  angles 0 -118.116 0
+ }
+ BZ_Loot_military_040 {
+  coords 13587.772 -0.340 14052.317
+  angles 0 87.823 0
+ }
+ BZ_Loot_military_041 {
+  coords 10444.906 272.812 5960.806
+  angles 0 -144.568 0
+ }
+}
+$grp GenericEntity : "{9318F4BB8381CCBA}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_TableMilitary_US_02_cabinet_et_Permanent.et" {
+ BZ_Loot_military_042 {
+  coords 1732.743 -0.300 14291.327
+  angles 0 23.445 0
+ }
+ BZ_Loot_military_043 {
+  coords 1371.835 0.000 12084.252
+  angles 0 -103.872 0
+ }
+ BZ_Loot_military_044 {
+  coords 12057.326 0.000 13776.061
+  angles 0 -104.215 0
+ }
+ BZ_Loot_military_045 {
+  coords 7829.231 0.443 12630.045
+  angles 0 13.175 0
+ }
+ BZ_Loot_military_046 {
+  coords 4527.271 0.000 8264.488
+  angles 0 72.225 0
+ }
+}
+$grp GenericEntity : "{C933B97CB42232AB}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_Safe_01_et_Permanent.et" {
+ BZ_Loot_military_047 {
+  coords 1688.603 0.403 13865.464
+  angles 0 128.532 0
+ }
+ BZ_Loot_military_048 {
+  coords 3982.192 0.000 11771.477
+  angles 0 124.854 0
+ }
+ BZ_Loot_military_049 {
+  coords 12663.786 112.094 14767.188
+  angles 0 -36.503 0
+ }
+ BZ_Loot_military_050 {
+  coords 3501.000 211.764 12474.437
+  angles 0 110.285 0
+ }
+ BZ_Loot_military_051 {
+  coords 5164.715 0.000 2316.461
+  angles 0 -146.547 0
+ }
+}
+$grp GenericEntity : "{2D9C067055AFCFF8}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_CabinetMetal_02_Base_et_Permanent.et" {
+ BZ_Loot_military_052 {
+  coords 1386.892 0.357 14430.476
+  angles 0 130.819 0
+ }
+ BZ_Loot_military_053 {
+  coords 4100.089 0.299 11607.829
+  angles 0 145.135 0
+ }
+ BZ_Loot_military_054 {
+  coords 1516.350 441.824 13568.600
+  angles 0 182.304 0
+ }
+ BZ_Loot_military_055 {
+  coords 11699.251 -0.489 14612.587
+  angles 0 -62.111 0
+ }
+ BZ_Loot_military_056 {
+  coords 4714.410 -0.006 2597.469
+  angles 0 108.681 0
+ }
+}
+

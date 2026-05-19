@@ -1,0 +1,56 @@
+SCR_ChimeraCharacter : "{8C7093AF368F496A}Prefabs/Characters/Factions/CIV/GenericCivilians/Character_CIV_CottonShirt_1.et" {
+ ID "CE48FBF0F5CDBEC0"
+ components {
+  SCR_CommunicationSoundComponent "{54FD05D0C92D071F}" {
+   Filenames + {
+    "{0D4A60A33022D9DE}Sounds/RadioProtocol/RadioProtocol_CombatOps_CZ.acp"
+   }
+  }
+  SCR_EditableCharacterComponent "{520EA1D2F659C85C}" {
+   m_UIInfo SCR_EditableEntityUIInfo "{5298E609432D192D}" {
+    Name "BrasilZ Survivor"
+    Icon "{0A78405E73C36477}UI/Textures/Editor/EditableEntities/Characters/EditableEntity_Character_Sharpshooter.edds"
+    m_Image "{CC3F5F69D32468BB}UI/Textures/EditorPreviews/Characters/INDFOR/FIA/Character_FIA_AC_Scout.edds"
+    m_aAuthoredLabels + {
+     ROLE_SCOUT
+    }
+   }
+  }
+  BaseLoadoutManagerComponent "{520EA1D2DB11821E}" {
+   Slots {
+    LoadoutSlotInfo Hat {
+     Prefab "{9F3A7D7943C278D1}Prefabs/Characters/HeadGear/Hat_FlatCap_01/Hat_FlatCap_01_base.et"
+    }
+    LoadoutSlotInfo Jacket {
+     Prefab "{D0C27D8DB0CC73D9}Prefabs/Characters/Uniforms/Shirt_CottonShirt_01/Shirt_CottonShirt_01_V1.et"
+    }
+    LoadoutSlotInfo Pants {
+     Prefab "{6925E6C63EBCF623}Prefabs/Characters/Uniforms/Pants_Trousers_01/Pants_Trousers_01_DarkBrown.et"
+    }
+    LoadoutSlotInfo Boots {
+     Prefab "{203EEA924B049EF1}Prefabs/Characters/Footwear/JungleBoots_01/JungleBoots_01.et"
+    }
+    LoadoutSlotInfo Back {
+    }
+    LoadoutSlotInfo Vest {
+    }
+   }
+  }
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+   ItemsInitConfigurationItem "{B70300000000E001}" {
+     TargetStorage "Jacket/Shirt_CottonShirt_01_V1.et"
+     PrefabsToSpawn {
+      "{575EA58E67448C2A}Prefabs/Items/Equipment/Flashlights/Flashlight_Soviet_01/Flashlight_Soviet_01.et" "{E5FF2886246E0797}Prefabs/Knifes/HuntsmanKnife/HuntsmanKnifeAC.et" "{F539F8AD9A0D2249}Prefabs/Items/WalletFisicalValue.et"
+     }
+    }
+   ItemsInitConfigurationItem "{B70300000000E002}" {
+     TargetStorage "Pants/Pants_Trousers_01_DarkBrown.et"
+     PrefabsToSpawn {
+      "{983B57B8E95C1F52}Prefabs/Items/Equipment/Maps/Map_Paper_01/PaperMap_01_folded_FIA.et" "{619D10551472D7DC}Prefabs/FoodDrink/Apple.et" "{2DA40953CC5C6D88}Prefabs/FoodDrink/WaterBottler.et" "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et"
+     }
+    }
+   }
+  }
+ }
+}

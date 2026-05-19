@@ -1,0 +1,40 @@
+BehaviorTree {
+ Name "AI/BehaviorTree/Group/BZ_ZombieDetect.bt"
+ Nodes {
+  RootNode Root {
+   Name "Root"
+   EditorPos 0 0
+   Nodes {
+    BZ_AIDetectPlayer "BZ_AI Detect Player" {
+     Name "BZ_AI Detect Player"
+     EditorPos 0 128
+     OutPorts {
+      SingleOutputPortContainer SingleOutputPortContainer {
+       Port 0
+       PortName "DetectedTarget"
+      }
+     }
+     m_fTimeSinceSeenMax 10
+     m_fTimeSinceDetectedMax 5
+     m_fMaxDetectionRange 70
+     m_fInvestigateTimeout 5
+     m_bDebugMode 0
+    }
+   }
+  }
+ }
+ Variables {
+  Variable detectedTarget {
+   VariableName "detectedTarget"
+   VariableTypeName "IEntity"
+   VariableExposedInput 0
+   VariableExposedOutput 1
+  }
+ }
+ VariablesRefs {
+  VariableReference detectedTarget {
+   VariableType 0
+   EditorPos 141 300
+  }
+ }
+}

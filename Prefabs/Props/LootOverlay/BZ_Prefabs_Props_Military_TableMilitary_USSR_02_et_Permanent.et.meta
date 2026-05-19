@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{2CBF9DB54D5E8E20}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_TableMilitary_USSR_02_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

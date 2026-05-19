@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{B70200000000E003}Prefabs/Items/Equipment/Backpacks/BrasilZ/BZ_TriZip_BagCoyote.et"
+ Configurations {
+  EntityResourceClass PC {
+  }
+  EntityResourceClass XBOX_ONE : PC {
+  }
+  EntityResourceClass XBOX_SERIES : PC {
+  }
+  EntityResourceClass PS4 : PC {
+  }
+  EntityResourceClass PS5 : PC {
+  }
+  EntityResourceClass HEADLESS : PC {
+  }
+  EntityResourceClass Xbox : PC {
+  }
+ }
+}

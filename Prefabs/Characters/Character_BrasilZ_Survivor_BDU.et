@@ -1,0 +1,46 @@
+SCR_ChimeraCharacter : "{748B185D87E782EE}Prefabs/Characters/Character_BrasilZ_Survivor.et" {
+ ID "B70400000000A003"
+ components {
+  SCR_EditableCharacterComponent "{520EA1D2F659C85C}" {
+   m_UIInfo SCR_EditableEntityUIInfo "{5298E609432D192D}" {
+    Name "BrasilZ Survivor Civilian 4"
+   }
+  }
+  BaseLoadoutManagerComponent "{520EA1D2DB11821E}" {
+   Slots {
+    LoadoutSlotInfo Hat {
+     Prefab "{17674905311133D7}Prefabs/Characters/HeadGear/Hat_TruckerCap_01/Hat_TruckerCap_01_alsworth.et"
+    }
+    LoadoutSlotInfo Jacket {
+     Prefab "{5E4878BA1A8D0AE9}Prefabs/Characters/Uniforms/Shirt_CottonShirt_01/Shirt_CottonShirt_01_V4.et"
+    }
+    LoadoutSlotInfo Pants {
+     Prefab "{65B7093231FBF67E}Prefabs/Characters/Uniforms/Pants_Trousers_01/Pants_Trousers_01_LightBrown.et"
+    }
+    LoadoutSlotInfo Boots {
+     Prefab "{203EEA924B049EF1}Prefabs/Characters/Footwear/JungleBoots_01/JungleBoots_01.et"
+    }
+    LoadoutSlotInfo Back {
+    }
+    LoadoutSlotInfo Vest {
+    }
+   }
+  }
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{B70400000000E301}" {
+     TargetStorage "Jacket/Shirt_CottonShirt_01_V4.et"
+     PrefabsToSpawn {
+      "{575EA58E67448C2A}Prefabs/Items/Equipment/Flashlights/Flashlight_Soviet_01/Flashlight_Soviet_01.et" "{E5FF2886246E0797}Prefabs/Knifes/HuntsmanKnife/HuntsmanKnifeAC.et" "{F539F8AD9A0D2249}Prefabs/Items/WalletFisicalValue.et"
+     }
+    }
+    ItemsInitConfigurationItem "{B70400000000E302}" {
+     TargetStorage "Pants/Pants_Trousers_01_LightBrown.et"
+     PrefabsToSpawn {
+      "{983B57B8E95C1F52}Prefabs/Items/Equipment/Maps/Map_Paper_01/PaperMap_01_folded_FIA.et" "{619D10551472D7DC}Prefabs/FoodDrink/Apple.et" "{2DA40953CC5C6D88}Prefabs/FoodDrink/WaterBottler.et" "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et"
+     }
+    }
+   }
+  }
+ }
+}

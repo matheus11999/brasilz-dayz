@@ -1,0 +1,38 @@
+$grp BZ_SpawnPoint : "{A709B32A9ED31E2D}Prefabs/MP/Spawn/BrasilZSpawnPoint.et" {
+ BZ_Kamenka {
+  coords 1860 0 2240
+ }
+ BZ_Komarovo {
+  coords 3650 0 2440
+ }
+ BZ_Balota {
+  coords 4339.742 4.864 2291.45
+ }
+ BZ_Chernogorsk {
+  coords 6750 0 2550
+ }
+ BZ_Prigorodki {
+  coords 8000 0 3300
+ }
+ BZ_Elektrozavodsk {
+  coords 10350 0 2250
+ }
+ BZ_Kamyshovo {
+  coords 12150 0 3500
+ }
+ BZ_Solnichniy {
+  coords 13400 0 6250
+ }
+ BZ_Nizhnoye {
+  coords 12950 0 8100
+ }
+ BZ_Berezino {
+  coords 12300 0 9700
+ }
+ BZ_Rify {
+  coords 13700 0 11200
+ }
+ BZ_Svetlojarsk {
+  coords 13950 0 13250
+ }
+}

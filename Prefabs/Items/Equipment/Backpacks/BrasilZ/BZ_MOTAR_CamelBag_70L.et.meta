@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{B70200000000E004}Prefabs/Items/Equipment/Backpacks/BrasilZ/BZ_MOTAR_CamelBag_70L.et"
+ Configurations {
+  EntityResourceClass PC {
+  }
+  EntityResourceClass XBOX_ONE : PC {
+  }
+  EntityResourceClass XBOX_SERIES : PC {
+  }
+  EntityResourceClass PS4 : PC {
+  }
+  EntityResourceClass PS5 : PC {
+  }
+  EntityResourceClass HEADLESS : PC {
+  }
+  EntityResourceClass Xbox : PC {
+  }
+ }
+}

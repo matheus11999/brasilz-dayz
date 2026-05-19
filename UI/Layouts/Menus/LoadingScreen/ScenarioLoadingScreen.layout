@@ -1,0 +1,39 @@
+FrameWidgetClass {
+ Name "ScenarioLoadingScreen"
+ Slot FrameWidgetSlot "{695B7335262CB910}" {
+  Anchor 0 0 1 1
+  OffsetLeft 0
+  OffsetTop 0
+  OffsetRight 0
+  OffsetBottom 0
+ }
+ {
+  ImageWidgetClass "{695B7335262CB911}" {
+   Name "BackgroundImage1"
+   Slot FrameWidgetSlot "{695B7335262CB912}" {
+    Anchor 0 0 1 1
+    OffsetLeft 0
+    OffsetTop 0
+    OffsetRight 0
+    OffsetBottom 0
+   }
+   Texture "{CF459B79E65A7B58}UI/Images/carregando.edds"
+   Size 1920 1080
+  }
+  ScaleWidgetClass "{695B7335262CB913}" {
+   Name "ScenarioPreviewScale"
+   "Is Enabled" 0
+   "Is Visible" 0
+  }
+  VerticalLayoutWidgetClass "{695B7335262CB914}" {
+   Name "ScenarioInfo"
+   "Is Enabled" 0
+   "Is Visible" 0
+  }
+  HorizontalLayoutWidgetClass "{695B7335262CB915}" {
+   Name "ScenarioFooter"
+   "Is Enabled" 0
+   "Is Visible" 0
+  }
+ }
+}

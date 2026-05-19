@@ -1,0 +1,61 @@
+GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
+ ID "6093E737C84B2A8E"
+ components {
+  FM_CatalogLootSpawnerComponent "{68E51624224DC9D0}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68E5162427A13D44}" {
+     m_sCatalogResource "{BB12292052E2F5B8}Configs/EntityCatalog/FMCatalog/InventoryItems_EntityCatalog_Factionless.conf"
+     m_eAllowedTypes 552064
+     m_fSpawnChance 0.4
+     m_bTier1 1
+     m_bTier2 0
+    }
+   }
+   m_fLootLifetime 0
+   m_fCooldownTime 0
+  }
+  RplComponent "{5624A88DC2D9928D}" {
+   Enabled 1
+  }
+  SCR_UniversalInventoryStorageComponent "{66B2BB5BD1FB43EF}" {
+   Attributes SCR_ItemAttributeCollection "{66B2BB5BD7946D02}" {
+    m_bDraggable 0
+    m_bVisible 0
+    m_bStackable 0
+    m_bRefundable 0
+   }
+   UseCapacityCoefficient 0
+   MaxCumulativeVolume 9223372036854775808
+   m_fMaxWeight 100
+  }
+  SCR_InventoryStorageManagerComponent "{66B2BB5BC6D98998}" {
+  }
+  ActionsManagerComponent "{66B2BB5BF0CC960C}" {
+   ActionContexts {
+    UserActionContext "{66B2BB5BF66D5FBF}" {
+     ContextName "def"
+     Position PointInfo "{66B2BB5BF9B74ECB}" {
+      Offset -0.7535 1.1387 0.7428
+     }
+     Radius 0.5
+     Omnidirectional 0
+    }
+   }
+   additionalActions {
+    FM_CatalogLootAction "{66B2BB5BE4CB8F6B}" {
+     ParentContextList {
+      "def"
+     }
+     UIInfo UIInfo "{66B2BB75307DC1CB}" {
+      Name "#AR-UserAction_Loot"
+     }
+     Duration 0.5
+     m_AudioSourceConfiguration SCR_AudioSourceConfiguration "{68EC0AD991A51D0E}" {
+      m_sSoundProject "{20BF71F689270E57}Sounds/Structures/_ShaderData/Doors/Structures_Door_Wooden_Handle.acp"
+      m_sSoundEventName "SOUND_OPEN_START"
+     }
+    }
+   }
+  }
+ }
+}

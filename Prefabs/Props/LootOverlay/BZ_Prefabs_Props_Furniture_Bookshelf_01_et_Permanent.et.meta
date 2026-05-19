@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{BA08A52F9FAE5265}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_Bookshelf_01_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

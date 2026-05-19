@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{7C0298650CF3B27E}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_CabinetMedical_01_single_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

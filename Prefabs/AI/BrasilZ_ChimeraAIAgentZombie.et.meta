@@ -1,0 +1,15 @@
+MetaFileClass {
+ Name "{B70100000000A200}Prefabs/AI/BrasilZ_ChimeraAIAgentZombie.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}

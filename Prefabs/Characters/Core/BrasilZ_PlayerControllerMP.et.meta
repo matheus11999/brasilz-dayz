@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{B70300000000C000}Prefabs/Characters/Core/BrasilZ_PlayerControllerMP.et"
+ Configurations {
+  ResourceClass PC {
+  }
+  ResourceClass XBOX_ONE : PC {
+  }
+  ResourceClass XBOX_SERIES : PC {
+  }
+  ResourceClass PS4 : PC {
+  }
+  ResourceClass PS5 : PC {
+  }
+  ResourceClass HEADLESS : PC {
+  }
+  ResourceClass Xbox : PC {
+  }
+ }
+}

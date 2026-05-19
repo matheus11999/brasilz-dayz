@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{5E4B1861121026BD}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_PlankPile_01_Medium_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

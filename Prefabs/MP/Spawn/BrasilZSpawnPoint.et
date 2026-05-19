@@ -1,0 +1,7 @@
+BZ_SpawnPoint {
+ ID "4E0B0AE84D866E50"
+ components {
+  RplComponent "{1266CB33AAE8F201}" {
+  }
+ }
+}

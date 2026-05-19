@@ -1,0 +1,67 @@
+GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  FM_CatalogLootSpawnerComponent "{68ED33C5044D42B6}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68ED33C50B9F75B0}" {
+     m_sCatalogResource "{BB12292052E2F5B8}Configs/EntityCatalog/FMCatalog/InventoryItems_EntityCatalog_Factionless.conf"
+     m_eAllowedTypes 197130
+     m_iMinItems 0
+     m_iMaxItems 1
+     m_fSpawnChance 1
+     m_bTier3 1
+     m_bTier4 1
+    }
+   }
+   m_fLootLifetime 0
+  }
+  RplComponent "{5624A88DC2D9928D}" {
+   Enabled 1
+  }
+  SCR_UniversalInventoryStorageComponent "{66B2BB79ADB275D2}" {
+   Attributes SCR_ItemAttributeCollection "{66B2BB7E523B40FE}" {
+    m_bDraggable 0
+    m_bVisible 0
+    m_bStackable 0
+    m_bRefundable 0
+   }
+   UseCapacityCoefficient 0
+   MaxCumulativeVolume 9223372036854775808
+   m_fMaxWeight 200
+  }
+  SCR_InventoryStorageManagerComponent "{66B2BB7E5D9CAA45}" {
+  }
+  ActionsManagerComponent "{66B2BB7E4FDE90E3}" {
+   ActionContexts {
+    UserActionContext "{66B2BB7E4EECB458}" {
+     ContextName "def"
+     Position PointInfo "{66B2BB7E71D2FB2A}" {
+      Offset -0.7476 1.1012 0.6062
+     }
+     Radius 0.5
+     Omnidirectional 0
+    }
+   }
+   additionalActions {
+    FM_CatalogLootAction "{68ED33C56F0FA051}" {
+     ParentContextList {
+      "def"
+     }
+     UIInfo UIInfo "{66AD6934AE8097D7}" {
+      Name "#AR-UserAction_Loot"
+     }
+     Duration 0.5
+     m_bRequireItem 1
+     m_RequiredItemPrefab "{63714ACDD2804077}Prefabs/Props/Keys/YellowKey.et"
+     m_sErrorMessage "YELLOW KEY REQUIRED"
+     m_bConsumeItem 1
+     m_bCheckLeftHand 1
+     m_AudioSourceConfiguration SCR_AudioSourceConfiguration "{68EC0AD991A51D0E}" {
+      m_sSoundProject "{D17752DAD02400CF}Sounds/Structures/_ShaderData/Doors/Structures_SlidingDoor_Metal_Thin.acp"
+      m_sSoundEventName "SOUND_OPEN_FINISH"
+     }
+    }
+   }
+  }
+ }
+}

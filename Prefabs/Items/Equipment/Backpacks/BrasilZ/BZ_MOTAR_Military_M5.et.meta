@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{B70200000000E005}Prefabs/Items/Equipment/Backpacks/BrasilZ/BZ_MOTAR_Military_M5.et"
+ Configurations {
+  EntityResourceClass PC {
+  }
+  EntityResourceClass XBOX_ONE : PC {
+  }
+  EntityResourceClass XBOX_SERIES : PC {
+  }
+  EntityResourceClass PS4 : PC {
+  }
+  EntityResourceClass PS5 : PC {
+  }
+  EntityResourceClass HEADLESS : PC {
+  }
+  EntityResourceClass Xbox : PC {
+  }
+ }
+}

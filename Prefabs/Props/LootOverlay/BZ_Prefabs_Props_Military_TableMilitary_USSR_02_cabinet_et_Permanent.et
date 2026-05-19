@@ -1,0 +1,65 @@
+GenericEntity : "{5EC6836A5694F691}Prefabs/Props/Military/Furniture/FurnitureMilitary_base.et" {
+ ID "5272E314F01B2DBE"
+ components {
+  FM_CatalogLootSpawnerComponent "{68ED5059D32C26B1}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68ED5059D226BAAB}" {
+     m_sCatalogResource "{BB12292052E2F5B8}Configs/EntityCatalog/FMCatalog/InventoryItems_EntityCatalog_Factionless.conf"
+     m_eAllowedTypes 197130
+     m_iMinItems 0
+     m_iMaxItems 1
+     m_fSpawnChance 0.4
+     m_bTier1 0
+     m_bTier3 1
+     m_bTier4 1
+    }
+   }
+   m_fLootLifetime 0
+  }
+  RplComponent "{5624A88DC2D9928D}" {
+   Enabled 1
+   "Parent Node From Parent Entity" 0
+  }
+  SCR_UniversalInventoryStorageComponent "{687F721F83F3A087}" {
+   Attributes SCR_ItemAttributeCollection "{687F721F81562F59}" {
+    m_bDraggable 0
+    m_bVisible 0
+    m_bStackable 0
+    m_bRefundable 0
+   }
+   UseCapacityCoefficient 0
+   MaxCumulativeVolume 9223372036854775808
+   m_fMaxWeight 100
+  }
+  SCR_InventoryStorageManagerComponent "{687F721F8C0DE8AB}" {
+  }
+  ActionsManagerComponent "{687F721FB26448C4}" {
+   ActionContexts {
+    UserActionContext "{687F721FB12F7ED4}" {
+     ContextName "def"
+     Position PointInfo "{687F721FB695A561}" {
+      Offset -0.0249 0.4999 0.2753
+     }
+     Radius 0.5
+     Omnidirectional 0
+    }
+   }
+   additionalActions {
+    FM_CatalogLootAction "{687F721FA7A705D3}" {
+     ParentContextList {
+      "def"
+     }
+     UIInfo UIInfo "{687F721FC4980579}" {
+      Name "#AR-UserAction_Loot"
+     }
+     Duration 0.5
+     m_sErrorMessage "GREEN KEY REQUIRED"
+     m_AudioSourceConfiguration SCR_AudioSourceConfiguration "{68ED33CFEDDA9AFD}" {
+      m_sSoundProject "{20BF71F689270E57}Sounds/Structures/_ShaderData/Doors/Structures_Door_Wooden_Handle.acp"
+      m_sSoundEventName "SOUND_OPEN_START"
+     }
+    }
+   }
+  }
+ }
+}

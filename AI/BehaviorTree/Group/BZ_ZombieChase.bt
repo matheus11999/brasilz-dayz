@@ -1,0 +1,204 @@
+BehaviorTree {
+ Name "AI/BehaviorTree/Group/BZ_ZombieChase.bt"
+ Nodes {
+  RootNode Root {
+   Name "Root"
+   EditorPos 0 0
+   Nodes {
+    DecoratorEntity Entity {
+     Name "Entity: Validate Target"
+     EditorPos 0 128
+     Nodes {
+      Parallel Parallel {
+       Name "Parallel: Move and Attack"
+       EditorPos 0 256
+       Nodes {
+       Sequence Sequence {
+        Name "Sequence: Movement"
+        EditorPos -256 384
+        Nodes {
+          BZ_AISetZombieSpeed "BZ_AI Set Zombie Speed" {
+           Name "BZ_AI Set Zombie Speed"
+           EditorPos -256 512
+           m_eMode CHASE
+         }
+          Parallel "Parallel: Direct Chase + Offsets" {
+           Name "Parallel: Direct Chase + Offsets"
+           EditorPos -256 736
+           Nodes {
+            AITaskMoveToEntity "Move To Entity" {
+             Name "Move To Entity"
+             EditorPos -448 864
+             PrecisionXZ 1.5
+             InEntity 0
+            }
+            Repeater "Repeater: Offset Assist" {
+             Name "Repeater: Offset Assist"
+             EditorPos -64 864
+             Nodes {
+              Sequence "Sequence: Offset Update" {
+               Name "Sequence: Offset Update"
+               EditorPos -64 992
+               Nodes {
+                BZ_AIGetEntityPositionWithOffset "Compute Chase Offset" {
+                 Name "Compute Chase Offset"
+                 EditorPos -192 1120
+                 InPorts {
+                  SingleInputPortContainer SingleInputPortContainer {
+                   Port 0
+                   PortName "Entity"
+                  }
+                 }
+                 OutPorts {
+                  SingleOutputPortContainer SingleOutputPortContainer {
+                   Port 0
+                   PortName "chasePosition"
+                  }
+                 }
+                 m_fMinRadius 1.2
+                 m_fMaxRadius 4.2
+                 m_fRecalculateInterval 0.65
+                 m_sOutputVariableName "chasePosition"
+                }
+                BZ_AIApplyChaseOffset "Apply Chase Offset" {
+                 Name "Apply Chase Offset"
+                 EditorPos 64 1120
+                 InPorts {
+                  SingleInputPortContainer SingleInputPortContainer {
+                   Port 0
+                   PortName "Target"
+                  }
+                  SingleInputPortContainer SingleInputPortContainer {
+                   Port 1
+                   PortName "OffsetPosition"
+                  }
+                 }
+                 m_fRequestInterval 0.4
+                 m_fRequestDuration 0.8
+                 m_bDebug 0
+                }
+                AITaskIdle "Offset Update Delay" {
+                 Name "Offset Update Delay"
+                 EditorPos 256 1120
+                 Period 0.35
+                 PeriodRandom 0.05
+                }
+               }
+              }
+             }
+            }
+           }
+           UseChildResult -1
+          }
+        }
+       }
+        Repeater Repeater {
+         Name "Repeater: Keep Attacking"
+         EditorPos 256 384
+         Nodes {
+          Sequence Sequence {
+           Name "Sequence: Attack Loop"
+           EditorPos 256 512
+           Nodes {
+            BZ_AICheckMeleeRange "Check: In Melee Range?" {
+             Name "Check: In Melee Range?"
+             EditorPos 256 640
+             m_fMeleeRange 0
+            }
+            Parallel Parallel {
+             Name "Parallel: Aim and Attack"
+             EditorPos 256 768
+             Nodes {
+              AITaskCharacterAim "Character Aim" {
+               Name "Character Aim"
+               EditorPos 128 896
+               InEntity 0
+               PrecisionXZ 0.5
+               PrecisionY 0.5
+               InAimOffset -1
+               Timeout 0.5
+               UseADS 0
+              }
+              Sequence Sequence {
+               Name "Sequence: Attack Loop"
+               EditorPos 384 896
+               Nodes {
+                AITaskRequestAction "Request Action" {
+                 Name "Request Action"
+                 EditorPos 394.057 1042.102
+                 ActionName "CharacterMelee"
+                 ActionValue 1
+                }
+                AITaskIdle Idle {
+                 Name "Idle"
+                 EditorPos 468.477 1196.25
+                 Period 0.8
+                 PeriodRandom 0.2
+                }
+               }
+              }
+             }
+             UseChildResult 1
+            }
+           }
+          }
+         }
+        }
+       }
+       UseChildResult -1
+      }
+     }
+     InEntity 0
+     TEST {
+      DecoratorTestDamageIsAlive "{5A3AF5D60014A9C0}" {
+      }
+     }
+    }
+   }
+  }
+ }
+Variables {
+ Variable DetectedTarget {
+  VariableName "DetectedTarget"
+  VariableTypeName "IEntity"
+  VariableExposedInput 1
+  VariableExposedOutput 0
+ }
+  Variable chasePosition {
+   VariableName "chasePosition"
+   VariableTypeName "vector"
+   VariableExposedInput 0
+   VariableExposedOutput 0
+  }
+ }
+ VariablesRefs {
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos -256 384
+  }
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos 256 256
+  }
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos -448 864
+  }
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos -192 1120
+  }
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos 64 1120
+  }
+  VariableReference chasePosition {
+   VariableType 0
+   EditorPos -192 1120
+  }
+  VariableReference chasePosition {
+   VariableType 0
+   EditorPos 64 1120
+  }
+ }
+}

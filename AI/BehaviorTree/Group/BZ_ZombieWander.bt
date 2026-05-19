@@ -1,0 +1,63 @@
+BehaviorTree {
+ Name "AI/BehaviorTree/Group/BZ_ZombieWander.bt"
+ Nodes {
+  RootNode Root {
+   Name "Root"
+   EditorPos 25 -143
+   Nodes {
+    Sequence Sequence {
+     Name "Sequence: Wander Cycle"
+     EditorPos -21 8
+     Nodes {
+      BZ_AISetZombieSpeed "BZ_AI Set Zombie Speed" {
+       Name "BZ_AI Set Zombie Speed"
+       EditorPos -484 135
+       m_eMode WANDER
+      }
+      BZ_AIGetRandomWanderPoint "BZ_AI Get Random Wander Point" {
+       Name "BZ_AI Get Random Wander Point"
+       EditorPos -201 150
+       OutPorts {
+        SingleOutputPortContainer SingleOutputPortContainer {
+         Port 0
+         PortName "WanderPoint"
+        }
+       }
+       m_bDebugMode 0
+      }
+      AITaskMove Move {
+       Name "Move to Wander Point"
+       EditorPos 435 198
+       InTargetLocation 1
+       PrecisionXZ 2
+      }
+      AITaskIdle Idle {
+       Name "Idle - Random Duration"
+       EditorPos 504 84
+       Period 20
+       PeriodRandom 8
+      }
+     }
+    }
+   }
+  }
+ }
+ Variables {
+  Variable wanderPoint {
+   VariableName "wanderPoint"
+   VariableTypeName "vector"
+   VariableExposedInput 0
+   VariableExposedOutput 0
+  }
+ }
+ VariablesRefs {
+  VariableReference wanderPoint {
+   VariableType 0
+   EditorPos -50 350
+  }
+  VariableReference wanderPoint {
+   VariableType 0
+   EditorPos 167 349
+  }
+ }
+}

@@ -1,0 +1,76 @@
+BehaviorTree {
+ Name "AI/BehaviorTree/Group/BZ_ZombieInvestigate.bt"
+ Nodes {
+  RootNode Root {
+   Name "Root"
+   EditorPos 178.538 -179.86
+   Nodes {
+    Sequence Sequence {
+     Name "Sequence: Investigate Threat Position"
+     EditorPos -47.61 -16.153
+     Nodes {
+      BZ_AISetZombieSpeed "Set Speed to Chase" {
+       Name "Set Speed to Chase"
+       EditorPos 0 256
+       m_eMode CHASE
+      }
+      BZ_AIGetThreatPosition "Get Threat Position" {
+       Name "Get Threat Position"
+       EditorPos 542.886 155.538
+       OutPorts {
+        SingleOutputPortContainer SingleOutputPortContainer {
+         Port 0
+         PortName "threatPosition"
+        }
+       }
+      }
+      AITaskMove "Move to Threat Position" {
+       Name "Move to Threat Position"
+       EditorPos 444.36 460.422
+       InTargetLocation 1
+       PrecisionXZ 2
+      }
+     AITaskIdle Observe {
+      Name "Observe"
+      EditorPos -330.625 580.487
+      Period 15
+      PeriodRandom 4
+     }
+     BZ_AIClearThreatState "Clear Threat State" {
+      Name "Clear Threat State"
+      EditorPos 7.935 807.675
+     }
+    }
+   }
+  }
+ }
+}
+Variables {
+ Variable threatPosition {
+  VariableName "threatPosition"
+  VariableTypeName "vector"
+  VariableExposedInput 0
+  VariableExposedOutput 0
+ }
+ Variable DetectedTarget {
+  VariableName "DetectedTarget"
+  VariableTypeName "IEntity"
+  VariableExposedInput 1
+  VariableExposedOutput 0
+ }
+}
+VariablesRefs {
+ VariableReference threatPosition {
+  VariableType 0
+  EditorPos 849.045 323.165
+ }
+ VariableReference threatPosition {
+  VariableType 0
+  EditorPos 210.277 574.157
+ }
+ VariableReference DetectedTarget {
+  VariableType 0
+  EditorPos 46 620
+ }
+}
+}

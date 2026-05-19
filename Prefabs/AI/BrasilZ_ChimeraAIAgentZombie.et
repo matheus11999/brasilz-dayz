@@ -1,0 +1,136 @@
+SCR_ChimeraAIAgent {
+ ID "B70100000000A201"
+ components {
+  AIChimeraBehaviorTreeComponent "{669E218AAF8F8A10}" {
+  }
+  AIFormationComponent "{669E218AAF8F8A06}" {
+   Enabled 0
+  }
+  AIPathfindingComponent "{669E218AAF8F8A04}" {
+   NavmeshProject "Soldiers"
+  }
+  AISmartActionUserComponent "{669E218AAF8F8A02}" {
+   Enabled 0
+  }
+  SCR_AICharacterSettingsComponent "{669E218AAF8F8A0C}" {
+  }
+  SCR_AICombatComponent "{669E218AAF8FB10C}" {
+  }
+  SCR_AIConfigComponent "{669E218AAF8F8A0B}" {
+   m_EnablePerception 1
+   m_EnableTakeCover 0
+   m_EnableCommunication 0
+   m_aDefaultReactions {
+    SCR_AIIdleReaction "{669E218AAF8F8A77}" {
+    }
+    SCR_AIObserveThreatSystemReaction "{669E218AAF8F8A75}" {
+    }
+   }
+   m_aDangerReactions {
+    SCR_AIDangerReaction_DamageTaken "{669E218AAF8F8A74}" {
+     m_eType Danger_DamageTaken
+    }
+    SCR_AIDangerReaction_ProjectileHit "{669E218AAF8F8A72}" {
+     m_eType Danger_ProjectileHit
+    }
+    SCR_AIDangerReaction_WeaponFired "{669E218AAF8F8A71}" {
+     m_eType Danger_WeaponFire
+    }
+    SCR_AIDangerReaction_Explosion "{669E218AAF8F8A7E}" {
+     m_eType Danger_Explosion
+    }
+    SCR_AIDangerReaction_GrenadeLanding "{669E218AAF8F8A79}" {
+     m_eType Danger_GrenadeLanding
+    }
+    SCR_AIDangerReaction_StartedBleeding "{669E218AAF8F8A67}" {
+     m_eType Danger_StartedBleeding
+    }
+    SCR_AIDangerReaction_DoorMovement "{669E218AAF8F8A65}" {
+     m_eType Danger_DoorMovement
+    }
+    SCR_AIDangerReaction_MeleeDamageTaken "{669E218AAF8F8A63}" {
+     m_eType Danger_MeleeDamageTaken
+    }
+    SCR_AIDangerReaction_UnsafeArea "{669E218AAF8F8A62}" {
+     m_eType Danger_UnsafeArea
+    }
+    SCR_AIDangerReaction_PhysicsContact "{669E218AAF8F8A60}" {
+     m_eType Danger_PhysicsContact
+    }
+   }
+   m_aGoalReactions {
+    SCR_AIGoalReaction_Attack "{669E218AAF8F8A6E}" {
+     m_eType ATTACK
+    }
+    SCR_AIGoalReaction_Defend "{669E218AAF8F8A6C}" {
+     m_eType DEFEND
+    }
+    SCR_AIGoalReaction_Investigate "{669E218AAF8F8A5E}" {
+     m_eType INVESTIGATE
+    }
+    SCR_AIGoalReaction_Move "{669E218AAF8F8A5A}" {
+     m_eType MOVE
+    }
+    SCR_AIGoalReaction_PerformAction "{669E218AAF8F8A58}" {
+     m_eType PERFORM_ACTION
+    }
+    SCR_AIGoalReaction_Cancel "{669E218AAF8F8A47}" {
+     m_eType CANCEL
+    }
+    SCR_AIGoalReaction_ThrowGrenadeTo "{669E218AAF8FB6D7}" {
+     m_eType THROW_GRENADE_TO
+    }
+    SCR_AIGoalReaction_AttackCluster "{669E218AAF8FB6D2}" {
+     m_eType ATTACK_CLUSTER
+    }
+    SCR_AIGoalReaction_CoverCluster "{669E218AAF8FB6DD}" {
+     m_eType COVER_CLUSTER
+    }
+    SCR_AIGoalReaction_AttackClusterDone "{669E218AAF8FB6DC}" {
+     m_eType ATTACK_CLUSTER_DONE
+    }
+    SCR_AIGoalReaction_Follow "{669E218AAF8FB6D8}" {
+     m_eType FOLLOW
+    }
+   }
+   m_Reaction_UnknownTarget SCR_AITargetReaction_Unknown "{669E218AAF8FB127}" {
+   }
+   m_Reaction_RetreatFromTarget SCR_AITargetReaction_RetreatFromEnemy "{669E218AAF8FB121}" {
+   }
+   m_Reaction_SelectedTargetChanged SCR_AITargetReaction_SelectedTargetChanged "{669E218AAF8FB133}" {
+   }
+   m_aWeaponTypeSelectionConfig {
+    SCR_AIWeaponTypeSelectionConfig "{669E218AAF8FB132}" {
+     m_eWeaponType WT_FRAGGRENADE
+     m_sBehaviorTree "{D899528454AD76C3}AI/BehaviorTrees/Chimera/Soldier/Attack_Throwable.bt"
+    }
+   }
+   m_aWeaponTypeHandlingConfig {
+    SCR_AIWeaponTypeHandlingConfig "{669E218AAF8FB107}" {
+     m_eWeaponType WT_HANDGUN
+     m_fBaseStabilizationTime 0.56
+    }
+    SCR_AIWeaponTypeHandlingConfig "{669E218AAF8FB106}" {
+     m_eWeaponType WT_FRAGGRENADE
+     m_fBaseStabilizationTime 3
+     m_fBaseRejectionTime 10
+    }
+    SCR_AIWeaponTypeHandlingConfig "{669E218AAF8FB101}" {
+     m_eWeaponType WT_SMOKEGRENADE
+     m_fBaseStabilizationTime 3
+     m_fBaseRejectionTime 10
+    }
+   }
+   m_DefaultWeaponTypeHandlingConfig SCR_AIWeaponTypeHandlingConfig "{669E218AAF8FB103}" {
+   }
+  }
+  SCR_AIInfoComponent "{669E218AAF8FB10D}" {
+  }
+  SCR_AIUtilityComponent "{669E218AAF8FB10F}" {
+  }
+  SCR_MailboxComponent "{669E218AAF8FB10E}" {
+  }
+ }
+ coords 81.076 2.001 227.147
+ DangerEventRange 1000
+}

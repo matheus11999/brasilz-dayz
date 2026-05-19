@@ -1,0 +1,7 @@
+SCR_PlayerController : "{225E51284CC95CFA}Prefabs/Characters/Core/DefaultPlayerControllerMP.et" {
+ ID "B70300000000C001"
+ components {
+  ADM_PlayerShopManagerComponent "{B70300000000C003}" {
+  }
+ }
+}

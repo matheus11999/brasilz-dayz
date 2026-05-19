@@ -1,0 +1,14 @@
+GenericEntity : "{D4FC23B28E7F8C8A}Prefabs/Items/Deployables/DeployableBike_01.et" {
+ ID "B70300000000D101"
+ components {
+  SCR_DeployableInventoryItemInventoryComponent "{64F841CB8A5067A7}" {
+   Attributes SCR_ItemAttributeCollection "{64F841CB88E33FA5}" {
+    ItemPhysAttributes ItemPhysicalAttributes "{64F841CBBE951FBF}" {
+     Weight 0
+     SizeSetupStrategy Size
+     ItemDimensions 1 1 1
+    }
+   }
+  }
+ }
+}

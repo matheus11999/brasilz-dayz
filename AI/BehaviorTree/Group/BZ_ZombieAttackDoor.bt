@@ -1,0 +1,71 @@
+BehaviorTree {
+ Name "AI/BehaviorTree/Group/BZ_ZombieAttackDoor.bt"
+ Nodes {
+  RootNode Root {
+   Name "Root"
+   EditorPos 0 0
+   Nodes {
+    Sequence Sequence {
+     Name "Sequence: Detect and Attack Door"
+     EditorPos 0 128
+     Nodes {
+      BZ_AIDetectDoor "BZ_AI Detect Door" {
+       Name "BZ_AI Detect Door"
+       EditorPos -246.382 228.624
+       m_fMaxDetectionDistance 3
+       m_bDebugMode 0
+      }
+      Parallel Parallel {
+       Name "Parallel: Move and Attack Door"
+       EditorPos 0 384
+       Nodes {
+        Sequence Sequence {
+         Name "Sequence: Move to Door"
+         EditorPos -256 512
+         Nodes {
+          AITaskMoveToEntity "Move To Door" {
+           Name "Move To Door"
+           EditorPos -256 640
+           PrecisionXZ 1.5
+           InEntity 0
+          }
+         }
+        }
+        Sequence Sequence {
+         Name "Sequence: Attack Door"
+         EditorPos 256 512
+         Nodes {
+          BZ_AIDoorMelee "BZ_AI Door Melee" {
+           Name "BZ_AI Door Melee"
+           EditorPos 256 800
+           m_fSearchRadius 2.5
+           m_fMeleeInterval 0.6
+           m_fDoorDamage 35
+           m_fDoorTimeout 30
+           m_bDebugMode 0
+          }
+         }
+        }
+       }
+       UseChildResult -1
+      }
+     }
+    }
+   }
+  }
+ }
+ Variables {
+  Variable detectedDoor {
+   VariableName "detectedDoor"
+   VariableTypeName "IEntity"
+   VariableExposedInput 0
+   VariableExposedOutput 1
+  }
+ }
+ VariablesRefs {
+  VariableReference detectedDoor {
+   VariableType 0
+   EditorPos 15.209 260.686
+  }
+ }
+}

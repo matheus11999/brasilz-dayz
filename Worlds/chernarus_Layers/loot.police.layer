@@ -1,0 +1,193 @@
+// Generated BrasilZ loot overlay for police.
+// Source positions: ChernarusMinusBeta layers. Edit in Workbench for final interior placement.
+$grp GenericEntity : "{FA10FBFE4C483F06}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_PoliceControlPanel_01_et_Permanent.et" {
+ BZ_Loot_police_001 {
+  coords 13149.494 0.001 10420.169
+  angles 0 -70.532 0
+ }
+ BZ_Loot_police_002 {
+  coords 8636.957 0.000 13339.857
+  angles 0 107.477 0
+ }
+ BZ_Loot_police_003 {
+  coords 3725.420 -0.013 12986.699
+  angles 0 100.344 0
+ }
+ BZ_Loot_police_004 {
+  coords 2738.377 210.310 12330.459
+  angles 0 198.118 0
+ }
+ BZ_Loot_police_005 {
+  coords 7670.115 -0.001 12537.510
+  angles 0 168.427 0
+ }
+ BZ_Loot_police_006 {
+  coords 12888.843 5.750 10087.335
+  angles 0 152.257 0
+ }
+ BZ_Loot_police_007 {
+  coords 7257.955 1.067 2247.526
+  angles 0 -60.172 0
+ }
+ BZ_Loot_police_008 {
+  coords 9780.337 282.027 8817.386
+  angles 0 226.952 0
+ }
+ BZ_Loot_police_009 {
+  coords 10817.244 239.063 12429.762
+  angles 0 -102.736 0
+ }
+}
+$grp GenericEntity : "{EF96B97F95CEAB7C}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_CabinetCardFile_01_Base_et_Permanent.et" {
+ BZ_Loot_police_010 {
+  coords 1563.514 0.185 14037.348
+  angles 0 49.731 0
+ }
+ BZ_Loot_police_011 {
+  coords 3709.652 0.207 14765.988
+  angles 0 -56.237 0
+ }
+ BZ_Loot_police_012 {
+  coords 3572.180 1.050 13070.379
+  angles 0 212.016 0
+ }
+ BZ_Loot_police_013 {
+  coords 7995.505 0.001 12677.961
+  angles 0 -10.556 0
+ }
+ BZ_Loot_police_014 {
+  coords 11568.707 0.738 14824.755
+  angles 0 120.156 0
+ }
+ BZ_Loot_police_015 {
+  coords 11997.637 51.219 9055.230
+  angles 0 71.520 0
+ }
+ BZ_Loot_police_016 {
+  coords 11191.382 76.372 6620.575
+  angles 0 -49.511 0
+ }
+ BZ_Loot_police_017 {
+  coords 8398.183 348.302 6697.634
+  angles 0 11.178 0
+ }
+ BZ_Loot_police_018 {
+  coords 2719.167 264.531 9984.572
+  angles 0 -15.257 0
+ }
+}
+$grp GenericEntity : "{A94E27725AC25FDC}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_Desk_01_Base_et_Permanent.et" {
+ BZ_Loot_police_019 {
+  coords 1681.932 0.001 14200.446
+  angles 0 103.209 0
+ }
+ BZ_Loot_police_020 {
+  coords 5667.818 0.100 15210.734
+  angles 0 223.200 0
+ }
+ BZ_Loot_police_021 {
+  coords 4142.306 0.001 11758.570
+  angles 0 -128.084 0
+ }
+ BZ_Loot_police_022 {
+  coords 3102.462 0.000 12639.489
+  angles 0 -163.000 0
+ }
+ BZ_Loot_police_023 {
+  coords 11339.989 0.000 14323.639
+  angles 0 -146.000 0
+ }
+ BZ_Loot_police_024 {
+  coords 6660.194 0.001 2790.477
+  angles 0 9.193 0
+ }
+ BZ_Loot_police_025 {
+  coords 3357.281 232.945 4959.385
+  angles 0 -52.822 0
+ }
+ BZ_Loot_police_026 {
+  coords 5373.606 321.293 8557.645
+  angles 0 -123.357 0
+ }
+ BZ_Loot_police_027 {
+  coords 12063.519 6.125 3546.785
+  angles 0 34.000 0
+ }
+}
+$grp GenericEntity : "{2D9C067055AFCFF8}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Military_CabinetMetal_02_Base_et_Permanent.et" {
+ BZ_Loot_police_028 {
+  coords 597.389 1.111 13658.203
+  angles 0 191.163 0
+ }
+ BZ_Loot_police_029 {
+  coords 2872.196 0.518 12420.042
+  angles 0 138.777 0
+ }
+ BZ_Loot_police_030 {
+  coords 12342.242 0.485 14189.434
+  angles 0 37.861 0
+ }
+ BZ_Loot_police_031 {
+  coords 11189.843 0.578 14320.859
+  angles 0 122.360 0
+ }
+ BZ_Loot_police_032 {
+  coords 8045.710 5.853 2916.395
+  angles 0 103.269 0
+ }
+ BZ_Loot_police_033 {
+  coords 6505.257 0.136 2532.497
+  angles 0 -48.583 0
+ }
+ BZ_Loot_police_034 {
+  coords 9837.813 1.184 2045.058
+  angles 0 192.712 0
+ }
+ BZ_Loot_police_035 {
+  coords 4384.213 225.633 4597.918
+  angles 0 125.814 0
+ }
+ BZ_Loot_police_036 {
+  coords 7196.626 285.469 7695.015
+  angles 0 109.405 0
+ }
+}
+$grp GenericEntity : "{3262AB84B1A5EE0D}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_Suitcase_01_et_Permanent.et" {
+ BZ_Loot_police_037 {
+  coords 8592.172 0.239 13070.606
+  angles 0 -15.292 0
+ }
+ BZ_Loot_police_038 {
+  coords 3408.064 0.475 12944.459
+  angles 0 132.617 0
+ }
+ BZ_Loot_police_039 {
+  coords 4138.001 0.000 13112.050
+  angles 0 -146.000 0
+ }
+ BZ_Loot_police_040 {
+  coords 4336.600 0.000 13078.395
+  angles 0 231.000 0
+ }
+ BZ_Loot_police_041 {
+  coords 12813.016 0.114 9877.138
+  angles 0 -154.813 0
+ }
+ BZ_Loot_police_042 {
+  coords 6788.102 6.263 2478.596
+  angles 0 -30.846 0
+ }
+ BZ_Loot_police_043 {
+  coords 10568.045 0.465 2365.444
+  angles 0 -1.599 0
+ }
+ BZ_Loot_police_044 {
+  coords 11096.233 0.015 12309.704
+  angles 0 89.696 0
+ }
+ BZ_Loot_police_045 {
+  coords 4651.871 0.000 10441.297
+  angles 0 -77.357 0
+ }
+}
+

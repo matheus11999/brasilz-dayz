@@ -1,0 +1,16 @@
+MetaFileClass {
+ Name "{5AA70DDB8B04C3F4}Prefabs/Props/LootOverlay/BZ_Prefabs_Props_Furniture_CrateWooden_01_base_et_Permanent.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+ }
+}
+

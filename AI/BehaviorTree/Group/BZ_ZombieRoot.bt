@@ -1,0 +1,257 @@
+BehaviorTree {
+ Name "AI/BehaviorTree/Group/BZ_ZombieRoot.bt"
+ Nodes {
+  RootNode Root {
+   Name "Root"
+   EditorPos 41.976 -310.187
+   Nodes {
+    Sequence Sequence {
+     Name "Seq: Main Zombie AI"
+     EditorPos -56.437 -180.492
+     Nodes {
+      RunOnce "Run Once" {
+       Name "Run Once: Initialization"
+       EditorPos -810.646 61.6
+       Nodes {
+        Sequence Sequence {
+         Name "Seq: Initialize Zombie"
+         EditorPos -822.813 242.207
+         Nodes {
+          SCR_AISetStance "SCR_AI Set Stance" {
+           Name "SCR_AI Set Stance"
+           EditorPos -1022.992 430.418
+           InPorts {
+            SingleInputPortContainer SingleInputPortContainer {
+             Port -1
+             PortName "Stance"
+            }
+           }
+           m_eStance STAND
+          }
+          SCR_AISetWeaponRaised "SCR_AI Set Weapon Raised" {
+           Name "SCR_AI Set Weapon Raised"
+           EditorPos -821.67 508.445
+           InPorts {
+            SingleInputPortContainer SingleInputPortContainer {
+             Port -1
+             PortName "Raised"
+            }
+           }
+           m_bWeaponRaised 0
+          }
+          BZ_AISetZombieSpeed "BZ_AI Set Zombie Speed" {
+           Name "BZ_AI Set Zombie Speed"
+           EditorPos -582.716 438.614
+           m_eMode WANDER
+           m_bDebugMode 0
+          }
+         }
+        }
+       }
+      }
+      Parallel Parallel {
+       Name "Parallel: Perception + Behavior"
+       EditorPos 56.143 -52.848
+       Nodes {
+        Sequence Sequence {
+         Name "Seq: Perception Loop"
+         EditorPos -373.002 64.642
+         Nodes {
+          BZ_AICheckIncomingVehicle "Check Incoming Vehicle" {
+           Name "Check Incoming Vehicle"
+           EditorPos -530.189 185.249
+           m_fReactDistance 12
+           m_fMinSpeed 0.15
+           m_bDebug 0
+          }
+          BZ_AIDetectPlayer "BZ_AI Detect Player" {
+           Name "BZ_AI Detect Player"
+           EditorPos -500.888 299.225
+           OutPorts {
+            SingleOutputPortContainer SingleOutputPortContainer {
+             Port 0
+             PortName "DetectedTarget"
+            }
+           }
+           m_fTimeSinceSeenMax 10
+           m_fTimeSinceDetectedMax 5
+          m_fMaxDetectionRange 70
+          m_fInvestigateTimeout 30
+          m_fInvestigateTravelSpeed 2.5
+          m_fInvestigateArrivalHold 4
+          m_fInvestigateCommitMin 6
+          m_fInvestigateCommitMax 180
+          m_bDebugMode 0
+         }
+          AITaskIdle Idle {
+           Name "Idle: Throttle Detection"
+           EditorPos -184.606 680.154
+           Period 0.5
+           PeriodRandom 0.1
+          }
+         }
+        }
+        DecoTestVariable "Test: Has Target?" {
+         Name "Test: Door Melee Only When Engaged"
+         EditorPos -7.364 411.955
+         Nodes {
+          Sequence Sequence {
+           Name "Seq: Close Proximity Check + Door Melee"
+           EditorPos -7.364 520
+           Nodes {
+            BZ_AICheckMeleeRange "Check: Target Within 10m?" {
+             Name "Check: Target Within 10m?"
+             EditorPos -7.364 550
+             m_fMeleeRange 10
+            }
+            BZ_AIDoorMelee "BZ_AI Door Melee (Parallel)" {
+             Name "BZ_AI Door Melee (Parallel)"
+             EditorPos -7.364 650
+             m_fSearchRadius 2.5
+             m_fMeleeInterval 0.8
+             m_fDoorDamage 35
+             m_fDoorTimeout 30
+             m_fBeginDelay 2
+             m_bDebugMode 0
+            }
+           }
+          }
+         }
+         InVariable 0
+         TestType IsAssigned
+         TestValue "null"
+        }
+        Selector Selector {
+         Name "Selector: Behavior Priority"
+         EditorPos 553.107 92.878
+         Nodes {
+          DecoTestVariable "Test: Has Target?" {
+           Name "Test: Has Target?"
+           EditorPos -86.227 208.691
+           Nodes {
+            RunBT RunBT {
+             Name "RunBT: Chase"
+             EditorPos 160.868 577.558
+             InPorts {
+              SingleInputPortContainer SingleInputPortContainer {
+               Port 0
+               PortName "DetectedTarget"
+              }
+             }
+             BehaviorTree "{B701000000007002}AI/BehaviorTree/Group/BZ_ZombieChase.bt"
+            }
+           }
+           UseChildResult 1
+           AbortType AbortChildrenBranchAndParentFurtherChildren
+           InVariable 0
+           TestType IsAssigned
+           TestValue "null"
+          }
+          BZ_AITestThreatState "Test: Threat State == INVESTIGATING?" {
+           Name "Test: Threat State == INVESTIGATING?"
+           EditorPos 296.543 241.621
+           Nodes {
+            RunBT RunBT {
+             Name "RunBT: Investigate"
+             EditorPos 541.205 593.898
+             BehaviorTree "{B701000000007003}AI/BehaviorTree/Group/BZ_ZombieInvestigate.bt"
+            }
+           }
+           UseChildResult 1
+           AbortType AbortChildrenBranchAndParentFurtherChildren
+           m_eExpectedState INVESTIGATING
+           m_bDebugMode 0
+          }
+          DecoTestVariable "Test: Has Target + Close?" {
+           Name "Test: Attack Door Only When Engaged & Close"
+           EditorPos 694.521 363.952
+           Nodes {
+            Sequence Sequence {
+             Name "Seq: Proximity Check + Attack Door"
+             EditorPos 694.521 440
+             Nodes {
+              BZ_AICheckMeleeRange "Check: Target Within 10m?" {
+               Name "Check: Target Within 10m?"
+               EditorPos 694.521 470
+               m_fMeleeRange 10
+              }
+              RunBT RunBT {
+               Name "RunBT: Attack Door (if blocking path)"
+               EditorPos 694.521 570
+               OutPorts {
+                SingleOutputPortContainer SingleOutputPortContainer {
+                 Port 0
+                 PortName "detectedDoor"
+                }
+               }
+               BehaviorTree "{B701000000007004}AI/BehaviorTree/Group/BZ_ZombieAttackDoor.bt"
+              }
+             }
+            }
+           }
+           InVariable 0
+           TestType IsAssigned
+           TestValue "null"
+          }
+          Sequence Sequence {
+           Name "Seq: Execute Utility Action"
+           EditorPos 1030.567 -53.38
+           Nodes {
+            SCR_AIUpdateExecutedAction "SCR_AI Update Executed Action" {
+             Name "SCR_AI Update Executed Action"
+             EditorPos 1052.922 126.541
+            }
+            SCR_AIIsValidAction "SCR_AI Is Valid Action" {
+             Name "SCR_AI Is Valid Action"
+             EditorPos 1346.746 36.539
+             Nodes {
+              RunBT RunBT {
+               Name "RunBT: Execute Current AI Action"
+               EditorPos 1533.478 332.9
+               AlwaysReinit 1
+               InBehaviorTree 1
+              }
+             }
+             UseChildResult 1
+            }
+           }
+          }
+          RunBT RunBT {
+           Name "RunBT: Wander (Fallback)"
+           EditorPos 1177.932 303.712
+           BehaviorTree "{B701000000007005}AI/BehaviorTree/Group/BZ_ZombieWander.bt"
+          }
+         }
+        }
+        RunBT RunBT {
+         Name "RunBT: Handle Combat Move"
+         EditorPos 1044.047 606.547
+         BehaviorTree "{B4954823621D32B6}AI/BehaviorTrees/Chimera/Soldier/HandleCombatMove.bt"
+        }
+       }
+       UseChildResult -1
+      }
+     }
+    }
+   }
+  }
+ }
+ Variables {
+  Variable DetectedTarget {
+   VariableName "DetectedTarget"
+   VariableTypeName "IEntity"
+   VariableExposedInput 0
+   VariableExposedOutput 0
+  }
+ }
+ VariablesRefs {
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos -258.804 405.224
+  }
+  VariableReference DetectedTarget {
+   VariableType 0
+   EditorPos 338.307 447.349
+  }
+ }
+}

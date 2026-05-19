@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{695B9A8F6F9D4011}UI/Layouts/Menus/BrasilZCharacter/BrasilZCharacterScreen.layout"
+ Configurations {
+  LayoutResourceClass PC {
+  }
+  LayoutResourceClass XBOX_ONE : PC {
+  }
+  LayoutResourceClass XBOX_SERIES : PC {
+  }
+  LayoutResourceClass PS4 : PC {
+  }
+  LayoutResourceClass PS5 : PC {
+  }
+  LayoutResourceClass HEADLESS : PC {
+  }
+  LayoutResourceClass Xbox : PC {
+  }
+ }
+}
