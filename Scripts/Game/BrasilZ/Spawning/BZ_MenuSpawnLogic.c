@@ -26,6 +26,13 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	override void OnPlayerRegistered_S(int playerId)
 	{
 		m_mPersistenceWaitTime.Remove(playerId);
+
+		// If this player still has a lingering disconnect body waiting to expire,
+		// remove it now so they don't reconnect alongside a duplicate corpse.
+		BZ_GameMode gm = BZ_GameMode.GetInstance();
+		if (gm)
+			gm.CancelPendingBodyDelete(playerId);
+
 		super.OnPlayerRegistered_S(playerId);
 	}
 
