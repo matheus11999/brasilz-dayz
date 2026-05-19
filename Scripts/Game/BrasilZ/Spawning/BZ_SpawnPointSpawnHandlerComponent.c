@@ -74,8 +74,12 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		if (!spawnPointData)
 		{
 			SCR_ESpawnResult vanillaResult = super.SpawnEntity_S(requestComponent, data, spawnedEntity);
-			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity)
-				PostProcessSpawnedPlayer(spawnedEntity, 0);
+
+			// CRITICAL: do NOT run PostProcessSpawnedPlayer for non-BZ spawn data.
+			// SCR_PossessSpawnData (reconnect) reaches this branch — running starter loadout
+			// would call StripMilitaryItems on the persisted character and break weapon
+			// state (reload/inspect actions stop working because the equipped weapon is removed).
+			// Starter loadout must only apply to fresh menu spawns (BZ_SpawnPointSpawnData below).
 
 			return vanillaResult;
 		}
