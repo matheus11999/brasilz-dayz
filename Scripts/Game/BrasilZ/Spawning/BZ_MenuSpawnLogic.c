@@ -8,15 +8,14 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	//------------------------------------------------------------------------------------------------
 	void BZ_MenuSpawnLogic()
 	{
-		// Controller SAVE keeps the player slot so persistence reloads them on reconnect.
-		// Character DELETE removes the live body from the world on alive disconnect so it
-		// doesn't sit visible until the SCR_ReconnectComponent audit timeout (the prefab
-		// doesn't ship that component, so without DELETE the body would linger forever).
-		// Dead/INCAPACITATED disconnect is intercepted in BZ_GameMode.OnPlayerDisconnected
-		// BEFORE super: decouple gives the corpse an independent persistence ID and skips
-		// super entirely, so the lootable body stays in world regardless of this setting.
+		// SAVE both so the engine adds the character to SCR_ReconnectComponent.m_ReconnectPlayerList.
+		// On a real disconnect the audit timer ticks down and the override in BZ_ReconnectComponent
+		// (BZ_ReconnectComponent.OnPlayerAuditTimeouted / SaveAndRemoveCharacter) cleans the body up.
+		// On server restart the engine repopulates the reconnect list from the persistence save, so
+		// orphan bodies left by players who didn't reconnect get the same audit-timeout cleanup.
+		// SCR_ReconnectComponent MUST be present on the GameMode prefab for this flow to work.
 		m_eDisconnectPlayerControllerBehaviour = SCR_ESpawnLogicDisconnectBehaviour.SAVE;
-		m_eDisconnectCharacterBehaviour = SCR_ESpawnLogicDisconnectBehaviour.DELETE;
+		m_eDisconnectCharacterBehaviour = SCR_ESpawnLogicDisconnectBehaviour.SAVE;
 		m_sForcedFaction = "CIV";
 		m_bWaitForSpawnPoints = true;
 		m_fDeployMenuOpenDelay = 4.0;
@@ -26,13 +25,6 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	override void OnPlayerRegistered_S(int playerId)
 	{
 		m_mPersistenceWaitTime.Remove(playerId);
-
-		// If this player still has a lingering disconnect body waiting to expire,
-		// remove it now so they don't reconnect alongside a duplicate corpse.
-		BZ_GameMode gm = BZ_GameMode.GetInstance();
-		if (gm)
-			gm.CancelPendingBodyDelete(playerId);
-
 		super.OnPlayerRegistered_S(playerId);
 	}
 

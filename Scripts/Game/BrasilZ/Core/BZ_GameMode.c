@@ -16,11 +16,9 @@ class BZ_GameMode : SCR_BaseGameMode
 	protected static const int CORPSE_CLEANUP_INTERVAL_MS = 60000;
 	protected static const int AUTOSAVE_START_DELAY_MS = 5000;
 	protected static const int AUTOSAVE_START_RETRY_MS = 3000;
-	protected static const int ALIVE_DISCONNECT_BODY_LIFETIME_MS = 30000;
 
 	protected ref array<IEntity> m_aTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aCorpseDeathTimes = new array<int>();
-	protected ref map<int, IEntity> m_mPendingBodyDelete = new map<int, IEntity>();
 
 	protected int m_iFlushRetryCount;
 	protected bool m_bAutoSaveEnabled;
@@ -237,66 +235,12 @@ class BZ_GameMode : SCR_BaseGameMode
 			return;
 		}
 
-		// Alive disconnect: keep the body in the world for ALIVE_DISCONNECT_BODY_LIFETIME_MS
-		// so other players see it linger, then force-delete. Skip super so the engine doesn't
-		// remove the entity immediately via the m_eDisconnectCharacterBehaviour=DELETE path.
-		if (playerEntity)
-		{
-			SavePlayerAndFlushToDisk(playerId);
-
-			m_mPendingBodyDelete.Set(playerId, playerEntity);
-			GetGame().GetCallqueue().CallLater(DeleteAliveDisconnectBody, ALIVE_DISCONNECT_BODY_LIFETIME_MS, false, playerId);
-			Print(string.Format("[BrasilZ][Disconnect] Player %1 alive disconnect — body will linger %2s then despawn.", playerId, ALIVE_DISCONNECT_BODY_LIFETIME_MS / 1000), LogLevel.NORMAL);
-
-			// Replicate super manually, skipping the engine character-cleanup path.
-			m_OnPlayerDisconnected.Invoke(playerId, cause, timeout);
-			foreach (SCR_BaseGameModeComponent comp : m_aAdditionalGamemodeComponents)
-				comp.OnPlayerDisconnected(playerId, cause, timeout);
-			m_OnPostCompPlayerDisconnected.Invoke(playerId, cause, timeout);
-			if (m_pRespawnSystemComponent)
-				m_pRespawnSystemComponent.OnPlayerDisconnected_S(playerId, cause, timeout);
-			return;
-		}
-
+		// Alive disconnect: let the engine SAVE the character into SCR_ReconnectComponent's
+		// reconnect list. The audit timer (vanilla default + BZ_ReconnectComponent override) cleans
+		// the body when it expires, and the same path also catches orphan bodies recreated from
+		// the persistence save after a server restart.
 		SavePlayerAndFlushToDisk(playerId);
 		super.OnPlayerDisconnected(playerId, cause, timeout);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Force-delete the lingering body for a player whose alive-disconnect timer expired.
-	protected void DeleteAliveDisconnectBody(int playerId)
-	{
-		if (!m_mPendingBodyDelete.Contains(playerId))
-			return;
-
-		IEntity entity = m_mPendingBodyDelete.Get(playerId);
-		m_mPendingBodyDelete.Remove(playerId);
-
-		if (entity)
-		{
-			RplComponent.DeleteRplEntity(entity, false);
-			Print(string.Format("[BrasilZ][Disconnect] Player %1 lingering body deleted after timer.", playerId), LogLevel.NORMAL);
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Called from BZ_MenuSpawnLogic.OnPlayerRegistered_S so a player who reconnects within the
-	// lingering window doesn't see their own stale body next to the freshly-spawned character.
-	void CancelPendingBodyDelete(int playerId)
-	{
-		if (!m_mPendingBodyDelete.Contains(playerId))
-			return;
-
-		IEntity entity = m_mPendingBodyDelete.Get(playerId);
-		m_mPendingBodyDelete.Remove(playerId);
-
-		GetGame().GetCallqueue().Remove(DeleteAliveDisconnectBody);
-
-		if (entity)
-		{
-			RplComponent.DeleteRplEntity(entity, false);
-			Print(string.Format("[BrasilZ][Disconnect] Player %1 reconnected within window — old body removed early.", playerId), LogLevel.NORMAL);
-		}
 	}
 
 	//------------------------------------------------------------------------------------------------

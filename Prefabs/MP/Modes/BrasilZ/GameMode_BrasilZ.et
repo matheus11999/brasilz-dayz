@@ -46,6 +46,8 @@ BZ_GameMode {
    m_iMinUptimeSec 7200
    m_iPollIntervalMs 10000
   }
+  SCR_ReconnectComponent "{695B7335262CB600}" {
+  }
   RplComponent "{2F06E49B7FEA9791}" {
    Streamable Disabled
   }
