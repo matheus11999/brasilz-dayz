@@ -10,12 +10,19 @@ class BZ_GameMode : SCR_BaseGameMode
 	[Attribute("1200", desc: "Corpse cleanup time in seconds (0 to disable). Bodies removed after this delay to limit entity count.")]
 	protected float m_fCorpseLifetimeSec;
 
+	[Attribute("60", desc: "Auto-save interval in seconds (0 to disable). Overwrites the latest save point so disconnected player data is preserved.")]
+	protected float m_fAutoSaveInterval;
+
 	protected static const int CORPSE_CLEANUP_INTERVAL_MS = 60000;
+	protected static const int AUTOSAVE_START_DELAY_MS = 5000;
+	protected static const int AUTOSAVE_START_RETRY_MS = 3000;
 
 	protected ref array<IEntity> m_aTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aCorpseDeathTimes = new array<int>();
 
 	protected int m_iFlushRetryCount;
+	protected bool m_bAutoSaveEnabled;
+	protected bool m_bAutoSaveScheduled;
 
 	//------------------------------------------------------------------------------------------------
 	static BZ_GameMode GetInstance()
@@ -36,8 +43,99 @@ class BZ_GameMode : SCR_BaseGameMode
 		super.EOnInit(owner);
 		s_Instance = this;
 
-		if (!IsProxy() && m_fCorpseLifetimeSec > 0)
+		if (IsProxy())
+			return;
+
+		if (m_fCorpseLifetimeSec > 0)
 			GetGame().GetCallqueue().CallLater(TickCorpseCleanup, CORPSE_CLEANUP_INTERVAL_MS, true);
+
+		if (m_fAutoSaveInterval > 0)
+			GetGame().GetCallqueue().CallLater(TryStartAutoSave, AUTOSAVE_START_DELAY_MS, false);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Wait for the save system to be ready before arming the periodic autosave.
+	protected void TryStartAutoSave()
+	{
+		if (m_bAutoSaveScheduled || m_fAutoSaveInterval <= 0)
+			return;
+
+		SaveGameManager saveManager = GetGame().GetSaveGameManager();
+		if (!saveManager || !saveManager.IsSavingPossible())
+		{
+			GetGame().GetCallqueue().CallLater(TryStartAutoSave, AUTOSAVE_START_RETRY_MS, false);
+			return;
+		}
+
+		StartAutoSave();
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void StartAutoSave()
+	{
+		if (m_fAutoSaveInterval <= 0)
+			return;
+
+		m_bAutoSaveEnabled = true;
+		m_bAutoSaveScheduled = true;
+		int intervalMs = m_fAutoSaveInterval * 1000;
+		GetGame().GetCallqueue().CallLater(PerformAutoSave, intervalMs, true);
+		Print(string.Format("[BrasilZ] Autosave armed every %1s", m_fAutoSaveInterval), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void PerformAutoSave()
+	{
+		if (!m_bAutoSaveEnabled)
+			return;
+
+		SaveGameManager saveManager = GetGame().GetSaveGameManager();
+		if (!saveManager || !saveManager.IsSavingPossible())
+			return;
+
+		if (!OverwriteLatestSave(saveManager))
+			Print("[BrasilZ] PerformAutoSave: no save to overwrite", LogLevel.WARNING);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	void StopAutoSave()
+	{
+		m_bAutoSaveEnabled = false;
+		m_bAutoSaveScheduled = false;
+		GetGame().GetCallqueue().Remove(PerformAutoSave);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Force a single save to disk with SHUTDOWN flag — call from admin/restart hooks before server close.
+	void ForceSaveNow()
+	{
+		SaveGameManager saveManager = GetGame().GetSaveGameManager();
+		if (!saveManager)
+			return;
+
+		if (!saveManager.IsSavingPossible())
+		{
+			GetGame().GetCallqueue().CallLater(ForceSaveNow, 3000, false);
+			return;
+		}
+
+		SaveGame saveToOverwrite = saveManager.GetActiveSave();
+		if (!saveToOverwrite)
+		{
+			array<SaveGame> saves = {};
+			int count = saveManager.GetSaves(saves);
+			if (count > 0)
+				saveToOverwrite = saves[count - 1];
+		}
+
+		if (!saveToOverwrite)
+		{
+			Print("[BrasilZ] ForceSaveNow: no save found to overwrite", LogLevel.WARNING);
+			return;
+		}
+
+		bool queued = saveManager.RequestSavePointOverwrite(saveToOverwrite, ESaveGameRequestFlags.SHUTDOWN);
+		Print(string.Format("[BrasilZ] ForceSaveNow: overwriting save with SHUTDOWN flag, queued=%1", queued), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------

@@ -129,6 +129,15 @@
   - `modded SCR_ReconnectComponent` (`BZ_ReconnectComponent.c`) sobrescreve `GetReconnectState` para retornar `ENTITY_DISCARDED` se: UID em `BZ_PlayerDeathRegistry`, character INCAPACITATED, ou health<=0. `OnPlayerAuditTimeouted` chama `SaveAndRemoveCharacter` com retry de persistencia ACTIVE (max 10x500ms) + BLOCKING flush antes de deletar.
   - `BZ_PlayerDeathRegistry` mantem death flag em `$profile:BrasilZ/Deaths/<uid>.flag` (presenca do arquivo = morto). Survive restart. Limpo no `BZ_SpawnPointSpawnHandlerComponent.PostProcessSpawnedPlayer` quando o jogador sobe novo personagem pelo menu BrasilZ.
   - `BZ_Utils.GetPlayerUID(playerId)` usa `BackendApi.GetPlayerIdentityId` (mesma fonte que o ReforgedZ).
+  - `BZ_MenuSpawnLogic.RequestPlayerData_S` espera ate 30s (`MAX_PERSISTENCE_ACTIVE_WAIT_MS`) o `SCR_PersistenceSystem` ficar `ACTIVE` antes de cair pro menu; reconectantes (entity na `m_ReconnectPlayerList`) pulam o wait pra nao estourar audit timeout.
+  - `BZ_MenuSpawnLogic.OnPlayerDataLoaded_S` chama `super` primeiro pra base game rodar `ResolveReconnection` antes de qualquer menu.
+  - `BZ_MenuSpawnLogic.OnPlayerCharacterLoaded_S` valida entity carregada do save antes do possess: death flag persistido (`BZ_PlayerDeathRegistry`), lifeState DEAD/INCAPACITATED, health<=0, posicao near-origin (0,0,0 bug). Rejeita -> deleta entity + `DoInitialSpawn_S`. Garante anti-ALT+F4 ate pos-restart do servidor.
+- Autosave periodico (`BZ_GameMode`):
+  - `m_fAutoSaveInterval` attribute (default 60s, 0 desabilita).
+  - `TryStartAutoSave` espera `IsSavingPossible()` (retry 3s) antes de armar.
+  - `PerformAutoSave` chama `OverwriteLatestSave(BLOCKING)` (nao cria save novo, sobrescreve o ativo pra preservar dados de jogador offline).
+  - `ForceSaveNow` disponivel pra restart hooks (flag `SHUTDOWN`).
+  - `StopAutoSave` cancela tick.
 - Permanece valido: nao reativar JSON de inventario/posicao em `$profile:BrasilZ/Players`. A pasta nova `$profile:BrasilZ/Deaths` so guarda flag minima, nao snapshot de inventario.
 
 ## Loading screen
