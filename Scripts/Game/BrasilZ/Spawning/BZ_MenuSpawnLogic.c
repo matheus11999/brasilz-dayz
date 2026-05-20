@@ -162,7 +162,9 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			}
 
 			Print(string.Format("[BrasilZ] Player %1 has no progress → vanilla opens deploy menu (delay=%2s)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
-			super.OnPlayerCharacterLoaded_S(EPersistenceStatusCode.PERSISTENT_ID_NOT_FOUND, null, isLast, context);
+			// Forward with null result; vanilla branches on (result == null) to open the menu.
+			// Keep original statusCode — EPersistenceStatusCode enum has only OK in this SDK.
+			super.OnPlayerCharacterLoaded_S(statusCode, null, isLast, context);
 			return;
 		}
 
