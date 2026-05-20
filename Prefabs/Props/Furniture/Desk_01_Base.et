@@ -4,7 +4,8 @@ GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Pro
   FM_CatalogLootSpawnerComponent "{68EC40EAD8895E35}" {
    m_aLootSlots {
     FM_CatalogLootSlot "{68EC40EADE1ECFB3}" {
-     m_sCatalogResource "{B706000000001000}Configs/ArmarioCivil.conf"
+     m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
+     m_eAllowedTypes 134233222
      m_iMaxItems 1
     }
    }

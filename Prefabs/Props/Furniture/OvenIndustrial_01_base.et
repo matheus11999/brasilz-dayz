@@ -1,13 +1,23 @@
 GenericEntity : "{10C26F96EF7A8CF5}Prefabs/Props/Core/Props_Base.et" {
  ID "F0DBA538AC2A0552"
  components {
+  FM_CatalogLootSpawnerComponent "{68EC40E1E61E7C95}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68EC40E1E55447BD}" {
+     m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
+     m_eAllowedTypes 134249606
+     m_fSpawnChance 0.3
+    }
+   }
+  }
   FM_CatalogLootSpawnerComponent "{B705F01100000001}" {
+   Enabled 0
    m_aLootSlots {
     FM_CatalogLootSlot "{B705F01100000002}" {
      m_sCatalogResource "{B705000000005000}Configs/Storage/StoveIndustrial.conf"
-     m_fSpawnChance 0.18
      m_iMinItems 0
      m_iMaxItems 1
+     m_fSpawnChance 0.18
     }
    }
   }

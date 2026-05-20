@@ -1,13 +1,24 @@
 GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
  ID "6093E737DD535EDA"
  components {
+  FM_CatalogLootSpawnerComponent "{68EC40E6C173A5B1}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68EC40E6C085588C}" {
+     m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
+     m_fSpawnChance 0.2
+     m_bTier2 1
+     m_bTier3 1
+    }
+   }
+  }
   FM_CatalogLootSpawnerComponent "{B705F00400000001}" {
+   Enabled 0
    m_aLootSlots {
     FM_CatalogLootSlot "{B705F00400000002}" {
      m_sCatalogResource "{B705000000003000}Configs/Storage/Kitchen.conf"
-     m_fSpawnChance 0.22
      m_iMinItems 0
      m_iMaxItems 1
+     m_fSpawnChance 0.22
     }
    }
   }

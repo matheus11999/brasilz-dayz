@@ -7,9 +7,9 @@ GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Pro
      m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
      m_eAllowedTypes 134618534
      m_iMinItems 1
-     m_fSpawnChance 0.3
+     m_fSpawnChance 0.5
      m_bTier2 0
-     m_bTier4 1
+     m_bTier3 1
     }
    }
    m_fLootLifetime 2940
