@@ -108,7 +108,14 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		BaseGameEntity loadedEntity = player;
 		bool rejectedAsDead = false;
 
-		// Death flag persisted in $profile:BrasilZ/Deaths — survives server restart
+		// Death flag persisted in $profile:BrasilZ/Deaths — survives server restart.
+		//
+		// IMPORTANT: stale-flag self-heal. Previous builds (before a7f0a56) treated lifeState
+		// DEAD/INCAPACITATED as proof of death on disconnect, which mis-flagged living players.
+		// To unblock those legacy stale flags without manual disk cleanup, we check the loaded
+		// character's actual health first. If the persisted save shows the character is alive
+		// (health > 0 and not destroyed), the flag is stale — clear it and accept the character.
+		// Only honor the flag when the persisted character is genuinely dead.
 		if (player)
 		{
 			string uid = BZ_Utils.GetPlayerUID(playerId);
@@ -117,9 +124,21 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 				BZ_PlayerDeathRegistry registry = BZ_PlayerDeathRegistry.GetInstance();
 				if (registry && registry.IsDeadByUID(uid))
 				{
-					Print(string.Format("[BrasilZ] Player %1 (UID %2) has persisted death flag — rejecting character", playerId, uid), LogLevel.NORMAL);
-					player = null;
-					rejectedAsDead = true;
+					SCR_DamageManagerComponent flagDmg = SCR_DamageManagerComponent.GetDamageManager(player);
+					bool charAlive = flagDmg && !flagDmg.IsDestroyed() && flagDmg.GetHealth() > 0;
+
+					if (charAlive)
+					{
+						Print(string.Format("[BrasilZ] Player %1 (UID %2) has stale death flag — character is alive (health=%3). Clearing flag and restoring.", playerId, uid, flagDmg.GetHealth()), LogLevel.WARNING);
+						registry.ClearDead(uid);
+						registry.ClearDeadBody(playerId);
+					}
+					else
+					{
+						Print(string.Format("[BrasilZ] Player %1 (UID %2) has persisted death flag and character is dead — rejecting character", playerId, uid), LogLevel.NORMAL);
+						player = null;
+						rejectedAsDead = true;
+					}
 				}
 			}
 		}
