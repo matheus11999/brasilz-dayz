@@ -27,6 +27,7 @@ class BZ_RestartComponent : ScriptComponent
 	protected bool m_bOneMinWarned;
 	protected bool m_bRestartTriggered;
 	protected bool m_bManualRestartActive;
+	protected bool m_bFinalSaveStarted;
 
 	//------------------------------------------------------------------------------------------------
 	static BZ_RestartComponent GetInstance()
@@ -203,8 +204,8 @@ class BZ_RestartComponent : ScriptComponent
 			m_bRestartTriggered = true;
 			GetGame().GetCallqueue().Remove(CheckRestartTime);
 			Broadcast("Servidor reiniciando agora. Reconecte em breve.");
-			Print("[BrasilZ][Restart] Closing server now.", LogLevel.NORMAL);
-			GetGame().GetCallqueue().CallLater(DoClose, 3000, false);
+			Print("[BrasilZ][Restart] Final save before close.", LogLevel.NORMAL);
+			GetGame().GetCallqueue().CallLater(DoFinalSaveThenClose, 3000, false);
 		}
 	}
 
@@ -248,8 +249,10 @@ class BZ_RestartComponent : ScriptComponent
 	{
 		GetGame().GetCallqueue().Remove(CheckRestartTime);
 		GetGame().GetCallqueue().Remove(DoClose);
+		GetGame().GetCallqueue().Remove(DoFinalSaveThenClose);
 		m_bRestartTriggered = false;
 		m_bManualRestartActive = false;
+		m_bFinalSaveStarted = false;
 
 		Broadcast("ADMIN: reinicio cancelado.");
 		Print("[BrasilZ][Restart] Pending restart cancelled.", LogLevel.NORMAL);
@@ -300,5 +303,52 @@ class BZ_RestartComponent : ScriptComponent
 	{
 		if (Replication.IsServer())
 			GetGame().RequestClose();
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void DoFinalSaveThenClose()
+	{
+		if (!Replication.IsServer())
+			return;
+
+		if (m_bFinalSaveStarted)
+			return;
+		m_bFinalSaveStarted = true;
+
+		BZ_SaveOnlinePlayers();
+		GetGame().GetCallqueue().CallLater(DoClose, 5000, false);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_SaveOnlinePlayers()
+	{
+		PlayerManager playerManager = GetGame().GetPlayerManager();
+		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetScriptedInstance();
+		SaveGameManager saveManager = GetGame().GetSaveGameManager();
+
+		if (!playerManager || !persistence || persistence.GetState() != EPersistenceSystemState.ACTIVE)
+		{
+			Print("[BrasilZ][Restart] Final save skipped: persistence/player manager not ready.", LogLevel.WARNING);
+			return;
+		}
+
+		array<int> players = {};
+		playerManager.GetPlayers(players);
+
+		foreach (int playerId : players)
+		{
+			PlayerController controller = playerManager.GetPlayerController(playerId);
+			if (controller)
+				persistence.Save(controller, ESaveGameType.AUTO);
+
+			IEntity character = playerManager.GetPlayerControlledEntity(playerId);
+			if (character)
+				persistence.Save(character, ESaveGameType.AUTO);
+		}
+
+		if (saveManager && saveManager.IsSavingPossible())
+			SCR_BaseGameMode.BZ_OverwriteLatestSave(saveManager);
+
+		Print(string.Format("[BrasilZ][Restart] Final save requested for %1 online player(s).", players.Count()), LogLevel.NORMAL);
 	}
 }

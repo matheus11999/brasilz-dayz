@@ -1,0 +1,17 @@
+GenericEntity : "{530C3C02C09C6B68}Prefabs/Props/Furniture/CabinetMetal_01_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  MeshObject "{5872F0EB7FA40561}" {
+   Materials {
+    MaterialAssignClass "{52D485D9F95DCA5D}" {
+     SourceMaterial "CabinetMetal_01"
+     AssignedMaterial "{0E9AB124404D2170}Assets/Props/Furniture/CabinetMetal_01/Data/CabinetMetal_01_V2.emat"
+    }
+   }
+  }
+  RigidBody "{5872F0EB7DFB5A9D}" {
+   ResponseIndex "HugeDestructible"
+  }
+ }
+ coords 0 0 0
+}
