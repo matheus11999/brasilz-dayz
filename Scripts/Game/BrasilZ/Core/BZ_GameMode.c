@@ -145,10 +145,16 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (entity.GetOrigin()[1] <= -1.0)
 				continue;
 
-			// Boot scan buries BOTH alive and dead orphan characters. Dead corpses from previous
-			// sessions are no longer tracked (in-memory list zeroed on restart), so the only way
-			// they'd ever be cleaned is here. Lootability is preserved within the SESSION the
-			// player died in — corpses persist until the next restart, then this scan clears them.
+			// Skip dead/INCAPACITATED corpses — those are PvP loot and MUST stay visible
+			// across restarts so a kill 5 minutes before reboot doesn't get wiped on boot.
+			// Corpses accumulate forever; admin can clean manually if needed.
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(character);
+			if (dmg && dmg.IsDestroyed())
+				continue;
+
+			CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
+			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
+				continue;
 
 			BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
 			if (!bgEntity)
@@ -166,7 +172,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 		}
 
 		m_aBzOrphanScanResults = null;
-		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 orphan bodies (alive + dead).", buried), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 alive orphan bodies. Dead corpses left for loot.", buried), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
