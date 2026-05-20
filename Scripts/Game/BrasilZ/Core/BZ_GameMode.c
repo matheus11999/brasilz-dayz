@@ -161,6 +161,13 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (!bgEntity)
 				continue;
 
+			// Disable damage so the body doesn't die underground (engine has void/OOB death
+			// zones above Y=-1000). Without this the body dies, save persists dead, reconnect
+			// rejects, player loses progress.
+			SCR_CharacterDamageManagerComponent buriedDmg = SCR_CharacterDamageManagerComponent.Cast(character.FindComponent(SCR_CharacterDamageManagerComponent));
+			if (buriedDmg)
+				buriedDmg.EnableDamageHandling(false);
+
 			vector transform[4];
 			bgEntity.GetWorldTransform(transform);
 			vector pos = transform[3];
@@ -168,7 +175,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 			transform[3] = pos;
 			bgEntity.Teleport(transform);
 
-			Print(string.Format("[BrasilZ][BootScan] Buried orphan body at %1.", pos), LogLevel.NORMAL);
+			Print(string.Format("[BrasilZ][BootScan] Buried orphan body at %1 (damage disabled).", pos), LogLevel.NORMAL);
 			buried++;
 		}
 

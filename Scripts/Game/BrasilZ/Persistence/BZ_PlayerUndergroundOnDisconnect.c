@@ -53,6 +53,16 @@ modded class SCR_PlayerController
 			return;
 		}
 
+		// Disable damage handling BEFORE moving. Engine has void/out-of-bounds death zones
+		// well above Y=-1000; without this the body dies underground, save persists a dead
+		// character, and reconnect rejects it as a stale dead body — player loses progress.
+		// EnableDamageHandling(false) blocks all damage sources (fall, void, environment)
+		// without firing the damage-manager invokers that the old SetHealthScaled(1.0)
+		// approach used to corrupt weapon attachments.
+		SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(character.FindComponent(SCR_CharacterDamageManagerComponent));
+		if (charDmg)
+			charDmg.EnableDamageHandling(false);
+
 		// Teleport is defined on BaseGameEntity, not IEntity, so cast first.
 		// Teleport (vs SetOrigin) is replicated AND updates child transforms, which is
 		// what prevented the weapon corruption seen with the old SetOrigin approach.
@@ -75,7 +85,7 @@ modded class SCR_PlayerController
 
 		bgEntity.Teleport(transform);
 
-		Print(string.Format("[BrasilZ][UndergroundHide] Body sunk to %1 on disconnect (teleport).", pos), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][UndergroundHide] Body sunk to %1 on disconnect (teleport, damage disabled).", pos), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -109,7 +119,13 @@ modded class SCR_PlayerController
 
 		bgEntity.Teleport(transform);
 
-		Print(string.Format("[BrasilZ][UndergroundHide] Body lifted to surface at %1 on reconnect (teleport).", transform[3]), LogLevel.NORMAL);
+		// Re-enable damage handling now that the body is back on the surface and bound to a
+		// PlayerController again. Without this the player would be invincible after reconnect.
+		SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(character.FindComponent(SCR_CharacterDamageManagerComponent));
+		if (charDmg)
+			charDmg.EnableDamageHandling(true);
+
+		Print(string.Format("[BrasilZ][UndergroundHide] Body lifted to surface at %1 on reconnect (teleport, damage re-enabled).", transform[3]), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
