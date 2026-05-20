@@ -12,17 +12,13 @@
 // the engine processes disconnect, then our anti-ALT+F4 / decouple-corpse logic runs.
 modded class SCR_BaseGameMode : BaseGameMode
 {
-	protected static const float BZ_CORPSE_LIFETIME_SEC = 1200.0;
 	protected static const float BZ_AUTOSAVE_INTERVAL_SEC = 60.0;
-	protected static const int BZ_CORPSE_CLEANUP_INTERVAL_MS = 60000;
 	protected static const int BZ_AUTOSAVE_START_DELAY_MS = 5000;
 	protected static const int BZ_AUTOSAVE_START_RETRY_MS = 3000;
 	protected static const int BZ_ORPHAN_GRACE_MS = 30000;
 	protected static const float BZ_ORPHAN_SCAN_RADIUS = 20000.0;
 	protected static const float BZ_ORPHAN_UNDERGROUND_OFFSET = 1000.0;
 
-	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
-	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
 	protected ref array<IEntity> m_aBzOrphanScanResults;
 
 	protected bool m_bBzAutoSaveEnabled;
@@ -51,9 +47,12 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (BZ_IsProxy())
 			return;
 
-		Print("[BrasilZ][GameMode] EOnInit fired. Arming corpse/autosave/orphan-scan hooks.", LogLevel.NORMAL);
+		Print("[BrasilZ][GameMode] EOnInit fired. Arming autosave + boot scan.", LogLevel.NORMAL);
 
-		GetGame().GetCallqueue().CallLater(BZ_TickCorpseCleanup, BZ_CORPSE_CLEANUP_INTERVAL_MS, true);
+		// No periodic corpse-cleanup tick — corpses only become "orphaned" after a server
+		// restart (their in-memory tracker is gone). The boot scan handles them once per boot;
+		// new corpses from in-session deaths stay lootable until the next restart, then get
+		// cleaned by the next boot scan.
 		GetGame().GetCallqueue().CallLater(BZ_TryStartAutoSave, BZ_AUTOSAVE_START_DELAY_MS, false);
 		GetGame().GetCallqueue().CallLater(BZ_TryArmOrphanScan, 1000, false);
 	}
@@ -138,19 +137,18 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (!character)
 				continue;
 
+			// Owned by a connected player → leave alone.
 			if (pm && pm.GetPlayerIdFromControlledEntity(entity) > 0)
 				continue;
 
-			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(character);
-			if (dmg && dmg.IsDestroyed())
-				continue;
-
-			CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
-			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
-				continue;
-
+			// Already buried (previous scan or hide-on-disconnect).
 			if (entity.GetOrigin()[1] <= -1.0)
 				continue;
+
+			// Boot scan buries BOTH alive and dead orphan characters. Dead corpses from previous
+			// sessions are no longer tracked (in-memory list zeroed on restart), so the only way
+			// they'd ever be cleaned is here. Lootability is preserved within the SESSION the
+			// player died in — corpses persist until the next restart, then this scan clears them.
 
 			BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
 			if (!bgEntity)
@@ -168,7 +166,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 		}
 
 		m_aBzOrphanScanResults = null;
-		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 stale alive bodies.", buried), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 orphan bodies (alive + dead).", buried), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -254,48 +252,6 @@ modded class SCR_BaseGameMode : BaseGameMode
 	}
 
 	//------------------------------------------------------------------------------------------------
-	void BZ_TrackCorpseForCleanup(IEntity corpse)
-	{
-		if (!corpse || BZ_CORPSE_LIFETIME_SEC <= 0)
-			return;
-
-		if (m_aBzTrackedCorpses.Contains(corpse))
-			return;
-
-		m_aBzTrackedCorpses.Insert(corpse);
-		m_aBzCorpseDeathTimes.Insert(System.GetTickCount());
-	}
-
-	//------------------------------------------------------------------------------------------------
-	protected void BZ_TickCorpseCleanup()
-	{
-		if (BZ_CORPSE_LIFETIME_SEC <= 0 || m_aBzTrackedCorpses.IsEmpty())
-			return;
-
-		int currentTime = System.GetTickCount();
-		float lifetimeMs = BZ_CORPSE_LIFETIME_SEC * 1000;
-
-		for (int i = m_aBzTrackedCorpses.Count() - 1; i >= 0; i--)
-		{
-			IEntity corpse = m_aBzTrackedCorpses[i];
-			if (!corpse)
-			{
-				m_aBzTrackedCorpses.Remove(i);
-				m_aBzCorpseDeathTimes.Remove(i);
-				continue;
-			}
-
-			float ageMs = currentTime - m_aBzCorpseDeathTimes[i];
-			if (ageMs >= lifetimeMs)
-			{
-				Print(string.Format("[BrasilZ] Cleaning up corpse at %1 (age: %2s)", corpse.GetOrigin(), ageMs / 1000), LogLevel.NORMAL);
-				m_aBzTrackedCorpses.Remove(i);
-				m_aBzCorpseDeathTimes.Remove(i);
-				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
-			}
-		}
-	}
-
 	//------------------------------------------------------------------------------------------------
 	protected void BZ_DecoupleDeadBody(IEntity body, int playerId)
 	{
@@ -310,7 +266,6 @@ modded class SCR_BaseGameMode : BaseGameMode
 		persistence.StartTracking(body);
 		persistence.Save(body, ESaveGameType.AUTO);
 
-		BZ_TrackCorpseForCleanup(body);
 		Print(string.Format("[BrasilZ] Dead body decoupled for player %1", playerId), LogLevel.NORMAL);
 	}
 
@@ -335,7 +290,6 @@ modded class SCR_BaseGameMode : BaseGameMode
 		persistence.StartTracking(body);
 		persistence.Save(body, ESaveGameType.AUTO);
 
-		BZ_TrackCorpseForCleanup(body);
 		Print(string.Format("[BrasilZ] Unconscious body decoupled for player %1", playerId), LogLevel.NORMAL);
 	}
 
