@@ -1,15 +1,14 @@
 GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
  ID "F0DBA538AC2A0552"
  components {
-  FM_CatalogLootSpawnerComponent "{B705F01C00000001}" {
+  FM_CatalogLootSpawnerComponent "{6874D901758875E1}" {
    m_aLootSlots {
-    FM_CatalogLootSlot "{B705F01C00000002}" {
-     m_sCatalogResource "{B70500000000B000}Configs/Storage/Bookshelf.conf"
-     m_fSpawnChance 0.12
-     m_iMinItems 0
+    FM_CatalogLootSlot "{68EC0AC3AF4DF01B}" {
+     m_sCatalogResource "{B706000000001000}Configs/ArmarioCivil.conf"
      m_iMaxItems 1
     }
    }
+   m_fLootLifetime 2040
   }
  }
 }

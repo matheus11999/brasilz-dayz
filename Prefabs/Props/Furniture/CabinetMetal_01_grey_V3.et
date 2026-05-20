@@ -1,0 +1,8 @@
+GenericEntity : "{530C3C02C09C6B68}Prefabs/Props/Furniture/CabinetMetal_01_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+   m_fLootLifetime 2040
+  }
+ }
+}

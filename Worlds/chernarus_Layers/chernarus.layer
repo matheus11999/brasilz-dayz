@@ -82,6 +82,9 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
   }
   SCR_MapMarkerManagerComponent "{695B7335262CB402}" {
   }
+  SCR_NametagConfigComponent "{571AA9E54FC9210D}" {
+   m_sConfigPath "{09F7AAA14A642683}Configs/NameTags/NametagFriendlies.conf"
+  }
   SCR_SupportStationManagerComponent "{695B5135602F8702}" {
   }
  }

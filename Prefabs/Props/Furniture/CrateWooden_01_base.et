@@ -1,0 +1,15 @@
+GenericEntity : "{10C26F96EF7A8CF5}Prefabs/Props/Core/Props_Base.et" {
+ ID "51E0C144AB96DABD"
+ components {
+  FM_CatalogLootSpawnerComponent "{68EC0AD983D106A9}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68EC0AD981553DF6}" {
+     m_sCatalogResource "{B706000000002000}Configs/CaixasDeMadeira.conf"
+     m_iMinItems 0
+     m_iMaxItems 1
+    }
+   }
+   m_fLootLifetime 2280
+  }
+ }
+}

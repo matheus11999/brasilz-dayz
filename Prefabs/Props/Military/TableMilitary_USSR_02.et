@@ -1,0 +1,14 @@
+GenericEntity : "{5EC6836A5694F691}Prefabs/Props/Military/Furniture/FurnitureMilitary_base.et" {
+ ID "5272E314F01B2DBE"
+ components {
+  FM_CatalogLootSpawnerComponent "{68EF55008C353DF0}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68EF5500B35A3385}" {
+     m_iMinItems 0
+     m_iMaxItems 1
+    }
+   }
+   m_fLootLifetime 2640
+  }
+ }
+}

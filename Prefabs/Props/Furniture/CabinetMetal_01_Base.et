@@ -1,0 +1,18 @@
+GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+     m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+     m_iMinItems 1
+     m_iMaxItems 1
+     m_fSpawnChance 1
+     m_bTier3 1
+     m_bTier4 1
+    }
+   }
+   m_fLootLifetime 1200
+  }
+ }
+}

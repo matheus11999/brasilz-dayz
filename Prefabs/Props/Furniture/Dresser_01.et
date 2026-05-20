@@ -1,15 +1,15 @@
 GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
  ID "6093E737E789436F"
  components {
-  FM_CatalogLootSpawnerComponent "{B705F01700000001}" {
+  FM_CatalogLootSpawnerComponent "{68EC40E56007BE65}" {
    m_aLootSlots {
-    FM_CatalogLootSlot "{B705F01700000002}" {
-     m_sCatalogResource "{B705000000009000}Configs/Storage/Wardrobe.conf"
-     m_fSpawnChance 0.18
+    FM_CatalogLootSlot "{68EC40E5677A3343}" {
+     m_sCatalogResource "{B706000000001000}Configs/ArmarioCivil.conf"
      m_iMinItems 0
      m_iMaxItems 1
     }
    }
+   m_fLootLifetime 2520
   }
  }
 }

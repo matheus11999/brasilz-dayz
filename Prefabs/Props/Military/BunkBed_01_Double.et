@@ -1,0 +1,15 @@
+GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
+ ID "5111E74D4E7A8DB6"
+ components {
+  FM_CatalogLootSpawnerComponent "{68ED33CDCAE2F603}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68ED33CDC9E8E541}" {
+     m_sCatalogResource "{07BE7EC4C6E3531F}Configs/LootMilitar.conf"
+     m_iMinItems 1
+     m_iMaxItems 1
+    }
+   }
+   m_fLootLifetime 2940
+  }
+ }
+}
