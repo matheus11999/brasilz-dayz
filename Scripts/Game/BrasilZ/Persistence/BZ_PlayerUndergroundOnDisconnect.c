@@ -16,6 +16,12 @@ modded class SCR_PlayerController
 	protected static const float BZ_UNDERGROUND_OFFSET = 1000.0;
 	protected static const float BZ_SURFACE_LIFT = 0.5;
 	protected static const int BZ_SINK_DELAY_MS = 500;
+	// Only lift bodies that were actually buried by the sink offset. Players standing at sea
+	// level on the coast can sit at Y ~ -1.4 — that is NOT a buried body. The old threshold
+	// of -1.0 caught those and added +1000, launching them 998m into the sky, where they fell,
+	// died on impact, and auto-respawned. Require the entity to be at least BURIED_SENTINEL_Y
+	// below the world (sink moves them to Y - 1000, so -500 is safely past any coast value).
+	protected static const float BZ_BURIED_SENTINEL_Y = -500.0;
 
 	//------------------------------------------------------------------------------------------------
 	override void OnControlledEntityChanged(IEntity from, IEntity to)
@@ -95,8 +101,8 @@ modded class SCR_PlayerController
 			return;
 
 		vector pos = character.GetOrigin();
-		if (pos[1] >= -1.0)
-			return; // already at/above ground, nothing to do
+		if (pos[1] >= BZ_BURIED_SENTINEL_Y)
+			return; // not buried by us (player at sea level / on coast); do not lift
 
 		// Reverse the sink exactly. GetSurfaceY(X,Z) was unreliable - if X,Z happened to be
 		// near a mountain, it returned the peak altitude (e.g. 327m) and the player would
