@@ -81,6 +81,17 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			// state (reload/inspect actions stop working because the equipped weapon is removed).
 			// Starter loadout must only apply to fresh menu spawns (BZ_SpawnPointSpawnData below).
 
+			// BUT we DO need to clear the persisted death flag here. The vanilla deploy menu
+			// builds SCR_SpawnPointSpawnData (not BZ_*), so without this hook a player who died
+			// last session would loop forever: rejoin → death flag rejects char → menu opens →
+			// player picks spawn → flag never cleared → next rejoin rejects again.
+			//
+			// Reconnects use SCR_PossessSpawnData, which is also non-BZ. Do NOT clear the flag
+			// for reconnects — possessing a saved character does not mean the dead flag should
+			// drop. The original death flag check already rejected those before reaching here.
+			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity && !SCR_PossessSpawnData.Cast(data))
+				ClearDeathFlagForFreshSpawn(data);
+
 			return vanillaResult;
 		}
 
@@ -145,5 +156,35 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		BZ_GroupsManagerComponent mgr = BZ_GroupsManagerComponent.Cast(SCR_GroupsManagerComponent.GetInstance());
 		if (mgr)
 			mgr.RemovePlayerFromAllGroups(playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Shared clear used by both the BZ and the vanilla-data branches when the player completes
+	// a fresh spawn (deploy menu / starter loadout). Resolves the UID via the spawn data's
+	// player id if available, otherwise asks the spawn request component for the controller.
+	protected void ClearDeathFlagForFreshSpawn(SCR_SpawnData data)
+	{
+		int playerId = -1;
+		// Prefer the spawn-data player id when present
+		SCR_SpawnPointSpawnData vanillaSpawnPoint = SCR_SpawnPointSpawnData.Cast(data);
+		if (vanillaSpawnPoint)
+			playerId = vanillaSpawnPoint.GetPlayerId();
+		if (playerId <= 0)
+			return;
+
+		string uid = BZ_Utils.GetPlayerUID(playerId);
+		if (uid.IsEmpty())
+			return;
+
+		BZ_PlayerDeathRegistry registry = BZ_PlayerDeathRegistry.GetInstance();
+		if (!registry)
+			return;
+
+		if (registry.IsDeadByUID(uid))
+		{
+			Print(string.Format("[BrasilZ] Clearing persisted death flag for player %1 (UID %2) after fresh menu spawn", playerId, uid), LogLevel.NORMAL);
+			registry.ClearDead(uid);
+			registry.ClearDeadBody(playerId);
+		}
 	}
 }
