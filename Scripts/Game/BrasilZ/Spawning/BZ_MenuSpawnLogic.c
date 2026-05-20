@@ -190,6 +190,48 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			return;
 		}
 
+		// Buried-position recovery: a player who disconnected alive was teleported to Y-1000
+		// by BZ_SinkCharacterOnDisconnect. The expected counter-move on reconnect is
+		// BZ_LiftCharacterOnReconnect inside SCR_PlayerController.OnControlledEntityChanged.
+		// In practice that event races with vanilla SCR_PossessSpawnHandlerComponent's restore
+		// for some reconnects and the lift never fires, leaving the player under the map.
+		//
+		// Lift INLINE here, before forwarding the saved character to vanilla. Vanilla then
+		// possesses the entity at its (now lifted) position. Use the same threshold the
+		// OnControlledEntityChanged handler uses (BZ_BURIED_SENTINEL_Y in
+		// BZ_PlayerUndergroundOnDisconnect.c).
+		if (player)
+		{
+			vector pos = player.GetOrigin();
+			const float BURIED_SENTINEL_Y = -500.0;
+			const float UNDERGROUND_OFFSET = 1000.0;
+			if (pos[1] < BURIED_SENTINEL_Y)
+			{
+				BaseGameEntity bgEntity = BaseGameEntity.Cast(player);
+				vector liftPos = pos;
+				liftPos[1] = liftPos[1] + UNDERGROUND_OFFSET;
+
+				if (bgEntity)
+				{
+					vector transform[4];
+					bgEntity.GetWorldTransform(transform);
+					transform[3] = liftPos;
+					bgEntity.Teleport(transform);
+				}
+				else
+				{
+					player.SetOrigin(liftPos);
+				}
+
+				// Re-enable damage handling since the body is back above ground.
+				SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(player.FindComponent(SCR_CharacterDamageManagerComponent));
+				if (charDmg)
+					charDmg.EnableDamageHandling(true);
+
+				Print(string.Format("[BrasilZ] Player %1 buried at %2 → lifted to %3 before possess (reverse sink, damage re-enabled)", playerId, pos, liftPos), LogLevel.NORMAL);
+			}
+		}
+
 		// Has progress → forward original args to vanilla, which possesses the saved character
 		// at its last position. Do NOT call RequestSpawn manually — vanilla does it correctly.
 		Print(string.Format("[BrasilZ] Player %1 has progress at %2 → vanilla restores last position", playerId, player.GetOrigin()), LogLevel.NORMAL);
