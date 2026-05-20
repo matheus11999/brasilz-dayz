@@ -172,19 +172,33 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 
 		if (!player)
 		{
-			// Delete stale persisted entity so it doesn't linger in the world
+			// No progress (fresh player or rejected dead char) → defer to vanilla DoInitialSpawn_S,
+			// which in SCR_MenuSpawnLogic queues OpenDeployMenu after m_fDeployMenuOpenDelay.
 			if (rejectedAsDead && loadedEntity)
 			{
 				Print(string.Format("[BrasilZ] Deleting stale persisted entity for dead player %1", playerId), LogLevel.WARNING);
 				RplComponent.DeleteRplEntity(loadedEntity, false);
 			}
 
+			Print(string.Format("[BrasilZ] Player %1 has no progress → opening deploy menu (DoInitialSpawn_S, delay=%2s)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
 			DoInitialSpawn_S(playerId);
 			return;
 		}
 
+		// Has progress → possess persisted character at its last saved position.
+		Print(string.Format("[BrasilZ] Player %1 has progress at %2 → restoring last position via PossessSpawnData", playerId, player.GetOrigin()), LogLevel.NORMAL);
 		SCR_PossessSpawnData data = SCR_PossessSpawnData.FromEntity(player);
 		data.SetSkipPreload(false);
 		GetPlayerRespawnComponent_S(playerId).RequestSpawn(data);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Player lost their character (died, admin-deleted, etc.). Vanilla SCR_MenuSpawnLogic
+	// auto-routes through DoSpawn_S → OpenDeployMenu after m_fDeployMenuOpenDelay. Log it so we
+	// can confirm the menu path is reached and the engine isn't bypassing it.
+	override void OnPlayerEntityLost_S(int playerId)
+	{
+		Print(string.Format("[BrasilZ] Player %1 entity lost → deploy menu should open in %2s (vanilla flow)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
+		super.OnPlayerEntityLost_S(playerId);
 	}
 }
