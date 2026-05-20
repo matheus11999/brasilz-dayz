@@ -57,20 +57,50 @@ class BZ_GameMode : SCR_BaseGameMode
 		if (m_fAutoSaveInterval > 0)
 			GetGame().GetCallqueue().CallLater(TryStartAutoSave, AUTOSAVE_START_DELAY_MS, false);
 
-		// Hook persistence state so we can run the orphan-body bury scan once it's ACTIVE.
+		Print("[BrasilZ][BootScan] EOnInit fired. Arming persistence hook.", LogLevel.NORMAL);
+
+		// Persistence system might not be initialized yet at GameMode EOnInit time.
+		// Start a retry loop that polls for the singleton and the ACTIVE state.
+		GetGame().GetCallqueue().CallLater(TryArmOrphanScan, 1000, false);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected int m_iOrphanArmRetries;
+
+	protected void TryArmOrphanScan()
+	{
+		if (m_bOrphanScanDone)
+			return;
+
 		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetScriptedInstance();
-		if (persistence)
+		if (!persistence)
 		{
-			if (persistence.GetState() >= EPersistenceSystemState.ACTIVE)
-				GetGame().GetCallqueue().CallLater(ScheduleOrphanScan, 0, false);
+			m_iOrphanArmRetries++;
+			if (m_iOrphanArmRetries < 30)
+				GetGame().GetCallqueue().CallLater(TryArmOrphanScan, 1000, false);
 			else
-				persistence.GetOnStateChanged().Insert(OnPersistenceStateChangedForOrphanScan);
+				Print("[BrasilZ][BootScan] Persistence system never appeared, giving up.", LogLevel.WARNING);
+			return;
 		}
+
+		EPersistenceSystemState state = persistence.GetState();
+		if (state >= EPersistenceSystemState.ACTIVE)
+		{
+			Print(string.Format("[BrasilZ][BootScan] Persistence already ACTIVE (state=%1). Scheduling scan.", state), LogLevel.NORMAL);
+			ScheduleOrphanScan();
+			return;
+		}
+
+		// Hook for transition to ACTIVE.
+		persistence.GetOnStateChanged().Insert(OnPersistenceStateChangedForOrphanScan);
+		Print(string.Format("[BrasilZ][BootScan] Persistence not ACTIVE yet (state=%1). Hooked state-changed event.", state), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
 	protected void OnPersistenceStateChangedForOrphanScan(EPersistenceSystemState oldState, EPersistenceSystemState newState)
 	{
+		Print(string.Format("[BrasilZ][BootScan] Persistence state change %1 -> %2.", oldState, newState), LogLevel.NORMAL);
+
 		if (newState != EPersistenceSystemState.ACTIVE)
 			return;
 
