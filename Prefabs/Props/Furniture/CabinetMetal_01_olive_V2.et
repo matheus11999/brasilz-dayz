@@ -4,7 +4,7 @@ GenericEntity : "{530C3C02C09C6B68}Prefabs/Props/Military/CabinetMetal_01_Base.e
   FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
    m_aLootSlots {
     FM_CatalogLootSlot "{68ED50584FCA87FF}" {
-     m_eAllowedTypes 752770
+     m_eAllowedTypes 728194
     }
    }
   }

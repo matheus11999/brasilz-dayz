@@ -5,12 +5,11 @@ GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Pro
    m_aLootSlots {
     FM_CatalogLootSlot "{68ED50584FCA87FF}" {
      m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
-     m_eAllowedTypes 721322
+     m_eAllowedTypes 725418
      m_iMinItems 0
      m_iMaxItems 1
      m_fSpawnChance 0.25
-     m_bTier3 1
-     m_bTier4 1
+     m_bTier1 1
     }
    }
    m_fLootLifetime 2760

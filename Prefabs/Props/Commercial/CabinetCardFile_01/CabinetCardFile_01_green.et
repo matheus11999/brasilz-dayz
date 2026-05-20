@@ -4,10 +4,13 @@ GenericEntity : "{F737777FF0A566D5}Prefabs/Props/Furniture/CabinetCardFile_01_Ba
   FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
    m_aLootSlots {
     FM_CatalogLootSlot "{68EB78678F498DBF}" {
-     m_eAllowedTypes 196866
+     m_eAllowedTypes 134418438
      m_iMinItems 1
-     m_iMaxItems 1
+     m_iMaxItems 3
      m_fSpawnChance 0.3
+     m_bTier1 1
+     m_bTier3 0
+     m_bTier4 0
     }
    }
   }
