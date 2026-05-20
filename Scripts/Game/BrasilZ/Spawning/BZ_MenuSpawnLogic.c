@@ -203,7 +203,12 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		if (player)
 		{
 			vector pos = player.GetOrigin();
-			const float BURIED_SENTINEL_Y = -500.0;
+			// Sentinel must catch every sunk character regardless of pre-sink altitude.
+			// Highest map peak ~600m → post-sink max Y ≈ -400, so a sentinel of -500 used
+			// to miss players sunk from mountaintops (CaverinhaTV restored at Y=-449 after
+			// a server-restart bury). Use -100: anyone below it was buried by us; anyone
+			// above it (sea level, coast, ocean diver at Y~-30) is legitimately placed.
+			const float BURIED_SENTINEL_Y = -100.0;
 			const float UNDERGROUND_OFFSET = 1000.0;
 			if (pos[1] < BURIED_SENTINEL_Y)
 			{

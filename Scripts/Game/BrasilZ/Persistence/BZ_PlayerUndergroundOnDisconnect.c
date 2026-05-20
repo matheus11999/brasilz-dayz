@@ -17,11 +17,19 @@ modded class SCR_PlayerController
 	protected static const float BZ_SURFACE_LIFT = 0.5;
 	protected static const int BZ_SINK_DELAY_MS = 500;
 	// Only lift bodies that were actually buried by the sink offset. Players standing at sea
-	// level on the coast can sit at Y ~ -1.4 — that is NOT a buried body. The old threshold
-	// of -1.0 caught those and added +1000, launching them 998m into the sky, where they fell,
-	// died on impact, and auto-respawned. Require the entity to be at least BURIED_SENTINEL_Y
-	// below the world (sink moves them to Y - 1000, so -500 is safely past any coast value).
-	protected static const float BZ_BURIED_SENTINEL_Y = -500.0;
+	// level on the coast can sit at Y ~ -1.4 — that is NOT a buried body. The threshold has
+	// to be:
+	//   * above the highest possible buried Y. Sink adds -1000 to current Y. Chernarus tops
+	//     out around Y=600, so the highest possible buried Y is ~ -400.
+	//   * below the deepest non-buried position. Players can swim at Y ~ -30 in deep water;
+	//     we do NOT want to lift those.
+	// -100 satisfies both: anyone at Y < -100 was buried by us; anyone at Y > -100 (sea
+	// level, coast, ocean diver) is legitimately placed.
+	//
+	// Previous value of -500 missed players sunk from mountaintops (post-sink Y = -450) —
+	// CaverinhaTV reproduced this after a server restart: pre-bury Y=550 → boot scan
+	// buried to -450 → -450 > -500 so lift was skipped → vanilla restored at -450 underwater.
+	protected static const float BZ_BURIED_SENTINEL_Y = -100.0;
 
 	//------------------------------------------------------------------------------------------------
 	override void OnControlledEntityChanged(IEntity from, IEntity to)
