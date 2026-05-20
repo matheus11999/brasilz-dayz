@@ -1,0 +1,8 @@
+GenericEntity : "{FBE3EE3ACA3DB9D6}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Small.et" {
+ components {
+  Bacon_622120A5448725E3_AmbientPatrolSpawnPointComponent "{626CF6EC8EE6E2FD}" {
+   m_fRespawnRand 59.6
+  }
+ }
+ coords 2777.362 202.425 5375.19
+}
