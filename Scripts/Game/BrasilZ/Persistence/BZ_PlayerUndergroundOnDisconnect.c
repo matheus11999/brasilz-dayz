@@ -98,16 +98,16 @@ modded class SCR_PlayerController
 		if (pos[1] >= -1.0)
 			return; // already at/above ground, nothing to do
 
-		BaseWorld world = GetGame().GetWorld();
-		if (!world)
-			return;
-
-		float surfaceY = world.GetSurfaceY(pos[0], pos[2]);
+		// Reverse the sink exactly. GetSurfaceY(X,Z) was unreliable - if X,Z happened to be
+		// near a mountain, it returned the peak altitude (e.g. 327m) and the player would
+		// fall from there to the actual ground after reconnect. Adding the offset back
+		// restores the character to the exact pre-disconnect Y.
+		vector liftPos = pos;
+		liftPos[1] = liftPos[1] + BZ_UNDERGROUND_OFFSET;
 
 		BaseGameEntity bgEntity = BaseGameEntity.Cast(character);
 		if (!bgEntity)
 		{
-			vector liftPos = Vector(pos[0], surfaceY + BZ_SURFACE_LIFT, pos[2]);
 			character.SetOrigin(liftPos);
 			Print(string.Format("[BrasilZ][UndergroundHide] Body lifted (SetOrigin fallback) to %1.", liftPos), LogLevel.WARNING);
 			return;
@@ -115,17 +115,17 @@ modded class SCR_PlayerController
 
 		vector transform[4];
 		bgEntity.GetWorldTransform(transform);
-		transform[3] = Vector(pos[0], surfaceY + BZ_SURFACE_LIFT, pos[2]);
+		transform[3] = liftPos;
 
 		bgEntity.Teleport(transform);
 
-		// Re-enable damage handling now that the body is back on the surface and bound to a
-		// PlayerController again. Without this the player would be invincible after reconnect.
+		// Re-enable damage handling now that the body is back at its original surface position
+		// and bound to a PlayerController again. Without this the player would be invincible.
 		SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(character.FindComponent(SCR_CharacterDamageManagerComponent));
 		if (charDmg)
 			charDmg.EnableDamageHandling(true);
 
-		Print(string.Format("[BrasilZ][UndergroundHide] Body lifted to surface at %1 on reconnect (teleport, damage re-enabled).", transform[3]), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][UndergroundHide] Body lifted to %1 on reconnect (reverse sink, damage re-enabled).", liftPos), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
