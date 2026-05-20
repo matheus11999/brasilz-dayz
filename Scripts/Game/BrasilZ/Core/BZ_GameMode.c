@@ -16,6 +16,11 @@ class BZ_GameMode : SCR_BaseGameMode
 	protected static const int CORPSE_CLEANUP_INTERVAL_MS = 60000;
 	protected static const int AUTOSAVE_START_DELAY_MS = 5000;
 	protected static const int AUTOSAVE_START_RETRY_MS = 3000;
+	protected static const int ORPHAN_GRACE_MS = 30000;
+	protected static const float ORPHAN_SCAN_RADIUS = 20000.0;
+	protected static const float ORPHAN_UNDERGROUND_OFFSET = 1000.0;
+
+	protected bool m_bOrphanScanDone;
 
 	protected ref array<IEntity> m_aTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aCorpseDeathTimes = new array<int>();
@@ -51,6 +56,112 @@ class BZ_GameMode : SCR_BaseGameMode
 
 		if (m_fAutoSaveInterval > 0)
 			GetGame().GetCallqueue().CallLater(TryStartAutoSave, AUTOSAVE_START_DELAY_MS, false);
+
+		// Hook persistence state so we can run the orphan-body bury scan once it's ACTIVE.
+		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetScriptedInstance();
+		if (persistence)
+		{
+			if (persistence.GetState() >= EPersistenceSystemState.ACTIVE)
+				GetGame().GetCallqueue().CallLater(ScheduleOrphanScan, 0, false);
+			else
+				persistence.GetOnStateChanged().Insert(OnPersistenceStateChangedForOrphanScan);
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void OnPersistenceStateChangedForOrphanScan(EPersistenceSystemState oldState, EPersistenceSystemState newState)
+	{
+		if (newState != EPersistenceSystemState.ACTIVE)
+			return;
+
+		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetScriptedInstance();
+		if (persistence)
+			persistence.GetOnStateChanged().Remove(OnPersistenceStateChangedForOrphanScan);
+
+		ScheduleOrphanScan();
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void ScheduleOrphanScan()
+	{
+		if (m_bOrphanScanDone)
+			return;
+
+		// 30s grace so legitimate reconnects bind their controller before we bury anything.
+		GetGame().GetCallqueue().CallLater(RunOrphanScan, ORPHAN_GRACE_MS, false);
+		Print("[BrasilZ][BootScan] Orphan scan scheduled in 30s after persistence ACTIVE.", LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected ref array<IEntity> m_aOrphanScanResults;
+
+	protected void RunOrphanScan()
+	{
+		if (m_bOrphanScanDone)
+			return;
+		m_bOrphanScanDone = true;
+
+		BaseWorld world = GetGame().GetWorld();
+		if (!world)
+			return;
+
+		m_aOrphanScanResults = new array<IEntity>();
+		world.QueryEntitiesBySphere(vector.Zero, ORPHAN_SCAN_RADIUS, QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		int buried = 0;
+
+		foreach (IEntity entity : m_aOrphanScanResults)
+		{
+			if (!entity || entity.IsDeleted())
+				continue;
+
+			ChimeraCharacter character = ChimeraCharacter.Cast(entity);
+			if (!character)
+				continue;
+
+			// Already owned by a connected player.
+			if (pm && pm.GetPlayerIdFromControlledEntity(entity) > 0)
+				continue;
+
+			// Skip dead/INCAP (corpse handled elsewhere).
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(character);
+			if (dmg && dmg.IsDestroyed())
+				continue;
+
+			CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
+			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
+				continue;
+
+			// Already buried.
+			if (entity.GetOrigin()[1] <= -1.0)
+				continue;
+
+			BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
+			if (!bgEntity)
+				continue;
+
+			vector transform[4];
+			bgEntity.GetWorldTransform(transform);
+			vector pos = transform[3];
+			pos[1] = pos[1] - ORPHAN_UNDERGROUND_OFFSET;
+			transform[3] = pos;
+			bgEntity.Teleport(transform);
+
+			Print(string.Format("[BrasilZ][BootScan] Buried orphan body at %1.", pos), LogLevel.NORMAL);
+			buried++;
+		}
+
+		m_aOrphanScanResults = null;
+		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 stale alive bodies.", buried), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected bool QueryCollectOrphanCandidate(IEntity entity)
+	{
+		if (entity && ChimeraCharacter.Cast(entity))
+			m_aOrphanScanResults.Insert(entity);
+		return true;
 	}
 
 	//------------------------------------------------------------------------------------------------

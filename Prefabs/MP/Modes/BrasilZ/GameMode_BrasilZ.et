@@ -48,11 +48,6 @@ BZ_GameMode {
   }
   SCR_ReconnectComponent "{695B7335262CB600}" {
   }
-  BZ_OrphanBodyBootScan "{695B7335262CB700}" {
-   m_iGraceSeconds 30
-   m_fScanHalfExtent 15000
-   m_fUndergroundOffset 1000
-  }
   RplComponent "{2F06E49B7FEA9791}" {
    Streamable Disabled
   }
