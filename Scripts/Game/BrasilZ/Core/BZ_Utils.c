@@ -17,18 +17,15 @@ class BZ_Utils
 		if (!character)
 			return false;
 
+		// Trust health ONLY. CharacterControllerComponent.GetLifeState() returns DEAD or
+		// INCAPACITATED transiently on alive characters (e.g. during a disconnect frame
+		// before replication finishes), which previously flagged living players as dead
+		// on logout. Anti-ALT+F4 must only fire when the damage manager confirms the
+		// player is actually destroyed or at 0 health — lifeState alone is not enough.
 		SCR_DamageManagerComponent dmgMgr = SCR_DamageManagerComponent.GetDamageManager(character);
-		if (dmgMgr && (dmgMgr.IsDestroyed() || dmgMgr.GetHealth() <= 0))
-			return true;
+		if (!dmgMgr)
+			return false;
 
-		CharacterControllerComponent charCtrl = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
-		if (charCtrl)
-		{
-			ECharacterLifeState lifeState = charCtrl.GetLifeState();
-			if (lifeState == ECharacterLifeState.DEAD || lifeState == ECharacterLifeState.INCAPACITATED)
-				return true;
-		}
-
-		return false;
+		return dmgMgr.IsDestroyed() || dmgMgr.GetHealth() <= 0;
 	}
 }
