@@ -191,49 +191,33 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		}
 
 		// Buried-position recovery: a player who disconnected alive was teleported to Y-1000
-		// by BZ_SinkCharacterOnDisconnect. The expected counter-move on reconnect is
-		// BZ_LiftCharacterOnReconnect inside SCR_PlayerController.OnControlledEntityChanged.
-		// In practice that event races with vanilla SCR_PossessSpawnHandlerComponent's restore
-		// for some reconnects and the lift never fires, leaving the player under the map.
+		// by BZ_SinkCharacterOnDisconnect (or by the boot orphan scan after a server restart).
 		//
-		// Lift INLINE here, before forwarding the saved character to vanilla. Vanilla then
-		// possesses the entity at its (now lifted) position. Use the same threshold the
-		// OnControlledEntityChanged handler uses (BZ_BURIED_SENTINEL_Y in
-		// BZ_PlayerUndergroundOnDisconnect.c).
+		// Previous attempt did Teleport BEFORE super.OnPlayerCharacterLoaded_S. That looked
+		// correct in logs but the entity origin update was applied async — vanilla read the
+		// stale buried Y in the same frame, possessed the character underwater, and the engine
+		// killed the char on void damage before the lifted transform replicated. Player ended
+		// up dead-decoupled within ~1 frame of joining.
+		//
+		// Fix: disable damage handling FIRST (so the body survives even if vanilla possess
+		// briefly sees the buried pos), forward to super to let vanilla possess, then lift +
+		// re-enable damage on the next callqueue tick once the entity is fully attached.
 		if (player)
 		{
 			vector pos = player.GetOrigin();
 			// Sentinel must catch every sunk character regardless of pre-sink altitude.
-			// Highest map peak ~600m → post-sink max Y ≈ -400, so a sentinel of -500 used
-			// to miss players sunk from mountaintops (CaverinhaTV restored at Y=-449 after
-			// a server-restart bury). Use -100: anyone below it was buried by us; anyone
-			// above it (sea level, coast, ocean diver at Y~-30) is legitimately placed.
+			// Highest map peak ~600m → post-sink max Y ≈ -400. Use -100: anyone below it
+			// was buried by us; ocean diver at Y~-30 is legitimately placed and stays.
 			const float BURIED_SENTINEL_Y = -100.0;
-			const float UNDERGROUND_OFFSET = 1000.0;
 			if (pos[1] < BURIED_SENTINEL_Y)
 			{
-				BaseGameEntity bgEntity = BaseGameEntity.Cast(player);
-				vector liftPos = pos;
-				liftPos[1] = liftPos[1] + UNDERGROUND_OFFSET;
-
-				if (bgEntity)
-				{
-					vector transform[4];
-					bgEntity.GetWorldTransform(transform);
-					transform[3] = liftPos;
-					bgEntity.Teleport(transform);
-				}
-				else
-				{
-					player.SetOrigin(liftPos);
-				}
-
-				// Re-enable damage handling since the body is back above ground.
 				SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(player.FindComponent(SCR_CharacterDamageManagerComponent));
 				if (charDmg)
-					charDmg.EnableDamageHandling(true);
+					charDmg.EnableDamageHandling(false);
 
-				Print(string.Format("[BrasilZ] Player %1 buried at %2 → lifted to %3 before possess (reverse sink, damage re-enabled)", playerId, pos, liftPos), LogLevel.NORMAL);
+				GetGame().GetCallqueue().CallLater(BZ_LiftAfterPossess, 250, false, player, pos);
+
+				Print(string.Format("[BrasilZ] Player %1 buried at %2 → damage disabled, lift deferred 250ms past super possess", playerId, pos), LogLevel.NORMAL);
 			}
 		}
 
@@ -251,5 +235,39 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	{
 		Print(string.Format("[BrasilZ] Player %1 entity lost → vanilla deploy menu opens in %2s", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
 		super.OnPlayerEntityLost_S(playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Deferred lift fired by callqueue after vanilla possess has completed. The entity is
+	// already attached to the controlling player at the buried Y; we move it back up by the
+	// underground offset and re-enable damage so the player picks up at their pre-bury Y
+	// with normal damage handling.
+	protected void BZ_LiftAfterPossess(IEntity entity, vector buriedPos)
+	{
+		if (!entity || entity.IsDeleted())
+			return;
+
+		const float UNDERGROUND_OFFSET = 1000.0;
+		vector liftPos = buriedPos;
+		liftPos[1] = liftPos[1] + UNDERGROUND_OFFSET;
+
+		BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
+		if (bgEntity)
+		{
+			vector transform[4];
+			bgEntity.GetWorldTransform(transform);
+			transform[3] = liftPos;
+			bgEntity.Teleport(transform);
+		}
+		else
+		{
+			entity.SetOrigin(liftPos);
+		}
+
+		SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(entity.FindComponent(SCR_CharacterDamageManagerComponent));
+		if (charDmg)
+			charDmg.EnableDamageHandling(true);
+
+		Print(string.Format("[BrasilZ] Deferred lift: %1 → %2 (damage re-enabled)", buriedPos, liftPos), LogLevel.NORMAL);
 	}
 }
