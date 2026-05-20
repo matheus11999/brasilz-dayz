@@ -86,6 +86,16 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	//------------------------------------------------------------------------------------------------
 	// Validate the persisted character before possession. Catches post-restart reconnect where
 	// SCR_ReconnectComponent has empty list but the save still holds a dead/dying body.
+	//
+	// Important: in normal/alive cases we MUST call super.OnPlayerCharacterLoaded_S with the
+	// original arguments. Vanilla SCR_MenuSpawnLogic does exactly the right thing:
+	//   * non-null result → PossessSpawnData → player restored at the saved position
+	//   * null result     → DoInitialSpawn_S → deploy menu opens after m_fDeployMenuOpenDelay
+	//
+	// The old override called PossessSpawnData/DoInitialSpawn_S manually, which bypassed
+	// vanilla's menu trigger and caused the respawn button to spawn the player at a default
+	// position (often underwater) instead of opening the menu. Now we only intercept to
+	// reject dead/death-flagged characters, then forward to super.
 	override protected void OnPlayerCharacterLoaded_S(EPersistenceStatusCode statusCode, Managed result, bool isLast, Managed context)
 	{
 		Tuple1<int> playerDataContext = Tuple1<int>.Cast(context);
@@ -131,7 +141,6 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			if (charController)
 				lifeState = charController.GetLifeState();
 
-			bool lifeStateDead = (lifeState == ECharacterLifeState.DEAD || lifeState == ECharacterLifeState.INCAPACITATED);
 			bool healthDead = destroyed || (dmgMgr && health <= 0);
 
 			if (healthDead)
@@ -140,56 +149,27 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 				player = null;
 				rejectedAsDead = true;
 			}
-			else if (lifeStateDead)
-			{
-				// Health is healthy but lifeState says dead — likely uninitialized state, ignore and accept.
-				Print(string.Format("[BrasilZ] Player %1 lifeState=%2 with health=%3 — treating as transient init state, accepting", playerId, typename.EnumToString(ECharacterLifeState, lifeState), health), LogLevel.WARNING);
-			}
 		}
 
-		// Near-origin position fix (0,0,0 bug after persistence corruption)
-		if (player)
-		{
-			vector pos = player.GetOrigin();
-			if (pos[0] < 10 && pos[0] > -10 && pos[2] < 10 && pos[2] > -10)
-			{
-				Print(string.Format("[BrasilZ] Player %1 loaded at invalid position %2 — relocating to spawn", playerId, pos), LogLevel.WARNING);
-				BZ_SpawnPoint spawnPoint = BZ_SpawnPoint.GetRandomSpawnPoint();
-				if (spawnPoint)
-				{
-					vector spawnPos, spawnYpr;
-					spawnPoint.GetPosYPR(spawnPos, spawnYpr);
-					if (spawnPos[0] > 10 || spawnPos[0] < -10 || spawnPos[2] > 10 || spawnPos[2] < -10)
-					{
-						vector transform[4];
-						player.GetWorldTransform(transform);
-						transform[3] = spawnPos;
-						player.Teleport(transform);
-					}
-				}
-			}
-		}
-
+		// Rejected: delete the stale persisted entity and forward to vanilla with a null result.
+		// Vanilla SCR_MenuSpawnLogic.OnPlayerCharacterLoaded_S(...null) → DoInitialSpawn_S → menu.
 		if (!player)
 		{
-			// No progress (fresh player or rejected dead char) → defer to vanilla DoInitialSpawn_S,
-			// which in SCR_MenuSpawnLogic queues OpenDeployMenu after m_fDeployMenuOpenDelay.
 			if (rejectedAsDead && loadedEntity)
 			{
 				Print(string.Format("[BrasilZ] Deleting stale persisted entity for dead player %1", playerId), LogLevel.WARNING);
 				RplComponent.DeleteRplEntity(loadedEntity, false);
 			}
 
-			Print(string.Format("[BrasilZ] Player %1 has no progress → opening deploy menu (DoInitialSpawn_S, delay=%2s)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
-			DoInitialSpawn_S(playerId);
+			Print(string.Format("[BrasilZ] Player %1 has no progress → vanilla opens deploy menu (delay=%2s)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
+			super.OnPlayerCharacterLoaded_S(EPersistenceStatusCode.PERSISTENT_ID_NOT_FOUND, null, isLast, context);
 			return;
 		}
 
-		// Has progress → possess persisted character at its last saved position.
-		Print(string.Format("[BrasilZ] Player %1 has progress at %2 → restoring last position via PossessSpawnData", playerId, player.GetOrigin()), LogLevel.NORMAL);
-		SCR_PossessSpawnData data = SCR_PossessSpawnData.FromEntity(player);
-		data.SetSkipPreload(false);
-		GetPlayerRespawnComponent_S(playerId).RequestSpawn(data);
+		// Has progress → forward original args to vanilla, which possesses the saved character
+		// at its last position. Do NOT call RequestSpawn manually — vanilla does it correctly.
+		Print(string.Format("[BrasilZ] Player %1 has progress at %2 → vanilla restores last position", playerId, player.GetOrigin()), LogLevel.NORMAL);
+		super.OnPlayerCharacterLoaded_S(statusCode, result, isLast, context);
 	}
 
 	//------------------------------------------------------------------------------------------------
