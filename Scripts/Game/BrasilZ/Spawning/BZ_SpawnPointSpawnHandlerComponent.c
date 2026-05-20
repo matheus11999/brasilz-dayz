@@ -90,7 +90,7 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			// for reconnects — possessing a saved character does not mean the dead flag should
 			// drop. The original death flag check already rejected those before reaching here.
 			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity && !SCR_PossessSpawnData.Cast(data))
-				ClearDeathFlagForFreshSpawn(data);
+				ClearDeathFlagForFreshSpawn(spawnedEntity);
 
 			return vanillaResult;
 		}
@@ -159,16 +159,19 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Shared clear used by both the BZ and the vanilla-data branches when the player completes
-	// a fresh spawn (deploy menu / starter loadout). Resolves the UID via the spawn data's
-	// player id if available, otherwise asks the spawn request component for the controller.
-	protected void ClearDeathFlagForFreshSpawn(SCR_SpawnData data)
+	// Shared clear used by the vanilla-data branch when the player completes a fresh deploy-menu
+	// spawn. SCR_SpawnPointSpawnData has no GetPlayerId(), so we resolve via the spawned entity's
+	// controller in the PlayerManager.
+	protected void ClearDeathFlagForFreshSpawn(IEntity spawnedEntity)
 	{
-		int playerId = -1;
-		// Prefer the spawn-data player id when present
-		SCR_SpawnPointSpawnData vanillaSpawnPoint = SCR_SpawnPointSpawnData.Cast(data);
-		if (vanillaSpawnPoint)
-			playerId = vanillaSpawnPoint.GetPlayerId();
+		if (!spawnedEntity)
+			return;
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		int playerId = pm.GetPlayerIdFromControlledEntity(spawnedEntity);
 		if (playerId <= 0)
 			return;
 
