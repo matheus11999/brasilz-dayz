@@ -11,8 +11,15 @@ class BZ_RespawnSystemComponent : SCR_RespawnSystemComponent
 	//------------------------------------------------------------------------------------------------
 	override void OnInit(IEntity owner)
 	{
-		if (!m_SpawnLogic)
+		// Force-override even if a parent class or prefab default already populated m_SpawnLogic
+		// with the vanilla SCR_MenuSpawnLogic. Without this, the `if (!m_SpawnLogic)` guard
+		// silently kept the vanilla instance, our overrides (OnPlayerCharacterLoaded_S /
+		// OnPlayerEntityLost_S) never fired, and the deploy menu was bypassed.
+		if (!BZ_MenuSpawnLogic.Cast(m_SpawnLogic))
+		{
+			Print("[BrasilZ] BZ_RespawnSystemComponent: replacing m_SpawnLogic with BZ_MenuSpawnLogic", LogLevel.NORMAL);
 			m_SpawnLogic = new BZ_MenuSpawnLogic();
+		}
 
 		super.OnInit(owner);
 	}

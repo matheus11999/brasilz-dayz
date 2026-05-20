@@ -1,3 +1,6 @@
+// Rebuild marker: forces Workbench to detect source change and repackage the .pak.
+// Bump the comment whenever the published addon needs a refresh on disk.
+// Last bump: 2026-05-20 — restore vanilla spawn/menu flow (commit 4406fc6).
 class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 {
 	protected static const int MAX_PERSISTENCE_ACTIVE_WAIT_MS = 30000;
