@@ -193,29 +193,12 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Player lost their character (died, admin-deleted, etc.). Pass through to super, which
-	// eventually calls DoSpawn_S — that's where we intercept the menu-vs-auto-spawn decision.
+	// Player lost their character (died, admin-deleted, etc.). Pass straight through to vanilla
+	// SCR_MenuSpawnLogic — its native flow opens the deploy menu after m_fDeployMenuOpenDelay
+	// (this already worked correctly before recent changes). Log only.
 	override void OnPlayerEntityLost_S(int playerId)
 	{
-		Print(string.Format("[BrasilZ] Player %1 entity lost → routing to deploy menu via DoSpawn_S override", playerId), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ] Player %1 entity lost → vanilla deploy menu opens in %2s", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
 		super.OnPlayerEntityLost_S(playerId);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// CRITICAL: vanilla SCR_MenuSpawnLogic.DoSpawn_S auto-spawns the player at the first
-	// available SCR_SpawnPoint without showing the deploy menu UI. This is why the respawn
-	// button bypassed the menu and dropped the player straight back into the world (often
-	// underwater). ReforgedZ overrides DoSpawn_S for the same reason — they redirect it to
-	// their custom character menu.
-	//
-	// For BZ we want the vanilla deploy menu. The menu is a CLIENT-side UI driven by the
-	// player controller having no controlled entity. Dropping the spawn call here keeps the
-	// player in that no-character state so the menu opens after m_fDeployMenuOpenDelay. The
-	// player then picks a spawn point, which fires SCR_SpawnRequestComponent.RequestRespawn
-	// → BZ_SpawnPointSpawnHandlerComponent (PostProcessSpawnedPlayer applies starter kit).
-	override protected void DoSpawn_S(int playerId)
-	{
-		Print(string.Format("[BrasilZ] DoSpawn_S(%1) intercepted — deploy menu opens client-side (delay=%2s)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
-		// No call to super — that's the auto-spawn we want to prevent.
 	}
 }
