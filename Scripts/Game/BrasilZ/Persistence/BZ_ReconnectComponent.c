@@ -117,7 +117,7 @@ modded class SCR_ReconnectComponent
 
 		SaveGameManager saveManager = GetGame().GetSaveGameManager();
 		if (saveManager && saveManager.IsSavingPossible())
-			BZ_GameMode.OverwriteLatestSave(saveManager);
+			SCR_BaseGameMode.BZ_OverwriteLatestSave(saveManager);
 
 		RplComponent.DeleteRplEntity(entity, false);
 		Print(string.Format("[BrasilZ] SaveAndRemoveCharacter: deleted entity for player %1 charId %2", playerId, charId), LogLevel.NORMAL);

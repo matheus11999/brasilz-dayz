@@ -1,4 +1,4 @@
-BZ_GameMode {
+SCR_BaseGameMode {
  ID "0D527508B3F69C92"
  components {
   BZ_RespawnSystemComponent "{230D3D03C513A112}" {

@@ -1,42 +1,39 @@
-[EntityEditorProps(category: "BrasilZ/Core", description: "BrasilZ survival game mode with reconnect persistence")]
-class BZ_GameModeClass : SCR_BaseGameModeClass
+// BrasilZ game-mode-level hooks injected into vanilla SCR_BaseGameMode.
+//
+// Why this is a modded class and not a stand-alone subclass:
+// The active GameMode entity in chernarus.layer is created as plain `SCR_BaseGameMode`
+// using the GameModeSF.et prefab. A subclass `BZ_GameMode : SCR_BaseGameMode` is never
+// instantiated (no layer references it), so its EOnInit / overrides never fire. Using
+// `modded class SCR_BaseGameMode` makes every SCR_BaseGameMode instance get this logic.
+//
+// BZ_WalletContentsPersistence.c ALSO declares `modded class SCR_BaseGameMode`. Enfusion
+// merges multiple modded declarations and chains overrides through super, so both work as
+// long as we call super.OnPlayerDisconnected(...). Wallet hook fires first via super, then
+// the engine processes disconnect, then our anti-ALT+F4 / decouple-corpse logic runs.
+modded class SCR_BaseGameMode : BaseGameMode
 {
-}
+	protected static const float BZ_CORPSE_LIFETIME_SEC = 1200.0;
+	protected static const float BZ_AUTOSAVE_INTERVAL_SEC = 60.0;
+	protected static const int BZ_CORPSE_CLEANUP_INTERVAL_MS = 60000;
+	protected static const int BZ_AUTOSAVE_START_DELAY_MS = 5000;
+	protected static const int BZ_AUTOSAVE_START_RETRY_MS = 3000;
+	protected static const int BZ_ORPHAN_GRACE_MS = 30000;
+	protected static const float BZ_ORPHAN_SCAN_RADIUS = 20000.0;
+	protected static const float BZ_ORPHAN_UNDERGROUND_OFFSET = 1000.0;
 
-class BZ_GameMode : SCR_BaseGameMode
-{
-	protected static BZ_GameMode s_Instance;
+	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
+	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
+	protected ref array<IEntity> m_aBzOrphanScanResults;
 
-	[Attribute("1200", desc: "Corpse cleanup time in seconds (0 to disable). Bodies removed after this delay to limit entity count.")]
-	protected float m_fCorpseLifetimeSec;
-
-	[Attribute("60", desc: "Auto-save interval in seconds (0 to disable). Overwrites the latest save point so disconnected player data is preserved.")]
-	protected float m_fAutoSaveInterval;
-
-	protected static const int CORPSE_CLEANUP_INTERVAL_MS = 60000;
-	protected static const int AUTOSAVE_START_DELAY_MS = 5000;
-	protected static const int AUTOSAVE_START_RETRY_MS = 3000;
-	protected static const int ORPHAN_GRACE_MS = 30000;
-	protected static const float ORPHAN_SCAN_RADIUS = 20000.0;
-	protected static const float ORPHAN_UNDERGROUND_OFFSET = 1000.0;
-
-	protected bool m_bOrphanScanDone;
-
-	protected ref array<IEntity> m_aTrackedCorpses = new array<IEntity>();
-	protected ref array<int> m_aCorpseDeathTimes = new array<int>();
-
-	protected int m_iFlushRetryCount;
-	protected bool m_bAutoSaveEnabled;
-	protected bool m_bAutoSaveScheduled;
+	protected bool m_bBzAutoSaveEnabled;
+	protected bool m_bBzAutoSaveScheduled;
+	protected int m_iBzFlushRetryCount;
+	protected int m_iBzOrphanArmRetries;
+	protected bool m_bBzOrphanScanDone;
+	protected bool m_bBzHooksInitialized;
 
 	//------------------------------------------------------------------------------------------------
-	static BZ_GameMode GetInstance()
-	{
-		return s_Instance;
-	}
-
-	//------------------------------------------------------------------------------------------------
-	bool IsProxy()
+	bool BZ_IsProxy()
 	{
 		RplComponent rpl = RplComponent.Cast(FindComponent(RplComponent));
 		return rpl && rpl.IsProxy();
@@ -46,38 +43,33 @@ class BZ_GameMode : SCR_BaseGameMode
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);
-		s_Instance = this;
 
-		if (IsProxy())
+		if (m_bBzHooksInitialized)
+			return;
+		m_bBzHooksInitialized = true;
+
+		if (BZ_IsProxy())
 			return;
 
-		if (m_fCorpseLifetimeSec > 0)
-			GetGame().GetCallqueue().CallLater(TickCorpseCleanup, CORPSE_CLEANUP_INTERVAL_MS, true);
+		Print("[BrasilZ][GameMode] EOnInit fired. Arming corpse/autosave/orphan-scan hooks.", LogLevel.NORMAL);
 
-		if (m_fAutoSaveInterval > 0)
-			GetGame().GetCallqueue().CallLater(TryStartAutoSave, AUTOSAVE_START_DELAY_MS, false);
-
-		Print("[BrasilZ][BootScan] EOnInit fired. Arming persistence hook.", LogLevel.NORMAL);
-
-		// Persistence system might not be initialized yet at GameMode EOnInit time.
-		// Start a retry loop that polls for the singleton and the ACTIVE state.
-		GetGame().GetCallqueue().CallLater(TryArmOrphanScan, 1000, false);
+		GetGame().GetCallqueue().CallLater(BZ_TickCorpseCleanup, BZ_CORPSE_CLEANUP_INTERVAL_MS, true);
+		GetGame().GetCallqueue().CallLater(BZ_TryStartAutoSave, BZ_AUTOSAVE_START_DELAY_MS, false);
+		GetGame().GetCallqueue().CallLater(BZ_TryArmOrphanScan, 1000, false);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected int m_iOrphanArmRetries;
-
-	protected void TryArmOrphanScan()
+	protected void BZ_TryArmOrphanScan()
 	{
-		if (m_bOrphanScanDone)
+		if (m_bBzOrphanScanDone)
 			return;
 
 		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetScriptedInstance();
 		if (!persistence)
 		{
-			m_iOrphanArmRetries++;
-			if (m_iOrphanArmRetries < 30)
-				GetGame().GetCallqueue().CallLater(TryArmOrphanScan, 1000, false);
+			m_iBzOrphanArmRetries++;
+			if (m_iBzOrphanArmRetries < 30)
+				GetGame().GetCallqueue().CallLater(BZ_TryArmOrphanScan, 1000, false);
 			else
 				Print("[BrasilZ][BootScan] Persistence system never appeared, giving up.", LogLevel.WARNING);
 			return;
@@ -87,17 +79,16 @@ class BZ_GameMode : SCR_BaseGameMode
 		if (state >= EPersistenceSystemState.ACTIVE)
 		{
 			Print(string.Format("[BrasilZ][BootScan] Persistence already ACTIVE (state=%1). Scheduling scan.", state), LogLevel.NORMAL);
-			ScheduleOrphanScan();
+			BZ_ScheduleOrphanScan();
 			return;
 		}
 
-		// Hook for transition to ACTIVE.
-		persistence.GetOnStateChanged().Insert(OnPersistenceStateChangedForOrphanScan);
+		persistence.GetOnStateChanged().Insert(BZ_OnPersistenceStateChanged);
 		Print(string.Format("[BrasilZ][BootScan] Persistence not ACTIVE yet (state=%1). Hooked state-changed event.", state), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected void OnPersistenceStateChangedForOrphanScan(EPersistenceSystemState oldState, EPersistenceSystemState newState)
+	protected void BZ_OnPersistenceStateChanged(EPersistenceSystemState oldState, EPersistenceSystemState newState)
 	{
 		Print(string.Format("[BrasilZ][BootScan] Persistence state change %1 -> %2.", oldState, newState), LogLevel.NORMAL);
 
@@ -106,42 +97,39 @@ class BZ_GameMode : SCR_BaseGameMode
 
 		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetScriptedInstance();
 		if (persistence)
-			persistence.GetOnStateChanged().Remove(OnPersistenceStateChangedForOrphanScan);
+			persistence.GetOnStateChanged().Remove(BZ_OnPersistenceStateChanged);
 
-		ScheduleOrphanScan();
+		BZ_ScheduleOrphanScan();
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected void ScheduleOrphanScan()
+	protected void BZ_ScheduleOrphanScan()
 	{
-		if (m_bOrphanScanDone)
+		if (m_bBzOrphanScanDone)
 			return;
 
-		// 30s grace so legitimate reconnects bind their controller before we bury anything.
-		GetGame().GetCallqueue().CallLater(RunOrphanScan, ORPHAN_GRACE_MS, false);
+		GetGame().GetCallqueue().CallLater(BZ_RunOrphanScan, BZ_ORPHAN_GRACE_MS, false);
 		Print("[BrasilZ][BootScan] Orphan scan scheduled in 30s after persistence ACTIVE.", LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected ref array<IEntity> m_aOrphanScanResults;
-
-	protected void RunOrphanScan()
+	protected void BZ_RunOrphanScan()
 	{
-		if (m_bOrphanScanDone)
+		if (m_bBzOrphanScanDone)
 			return;
-		m_bOrphanScanDone = true;
+		m_bBzOrphanScanDone = true;
 
 		BaseWorld world = GetGame().GetWorld();
 		if (!world)
 			return;
 
-		m_aOrphanScanResults = new array<IEntity>();
-		world.QueryEntitiesBySphere(vector.Zero, ORPHAN_SCAN_RADIUS, QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
+		m_aBzOrphanScanResults = new array<IEntity>();
+		world.QueryEntitiesBySphere(vector.Zero, BZ_ORPHAN_SCAN_RADIUS, BZ_QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
 
 		PlayerManager pm = GetGame().GetPlayerManager();
 		int buried = 0;
 
-		foreach (IEntity entity : m_aOrphanScanResults)
+		foreach (IEntity entity : m_aBzOrphanScanResults)
 		{
 			if (!entity || entity.IsDeleted())
 				continue;
@@ -150,11 +138,9 @@ class BZ_GameMode : SCR_BaseGameMode
 			if (!character)
 				continue;
 
-			// Already owned by a connected player.
 			if (pm && pm.GetPlayerIdFromControlledEntity(entity) > 0)
 				continue;
 
-			// Skip dead/INCAP (corpse handled elsewhere).
 			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(character);
 			if (dmg && dmg.IsDestroyed())
 				continue;
@@ -163,7 +149,6 @@ class BZ_GameMode : SCR_BaseGameMode
 			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
 				continue;
 
-			// Already buried.
 			if (entity.GetOrigin()[1] <= -1.0)
 				continue;
 
@@ -174,7 +159,7 @@ class BZ_GameMode : SCR_BaseGameMode
 			vector transform[4];
 			bgEntity.GetWorldTransform(transform);
 			vector pos = transform[3];
-			pos[1] = pos[1] - ORPHAN_UNDERGROUND_OFFSET;
+			pos[1] = pos[1] - BZ_ORPHAN_UNDERGROUND_OFFSET;
 			transform[3] = pos;
 			bgEntity.Teleport(transform);
 
@@ -182,73 +167,75 @@ class BZ_GameMode : SCR_BaseGameMode
 			buried++;
 		}
 
-		m_aOrphanScanResults = null;
+		m_aBzOrphanScanResults = null;
 		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 stale alive bodies.", buried), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected bool QueryCollectOrphanCandidate(IEntity entity)
+	protected bool BZ_QueryCollectOrphanCandidate(IEntity entity)
 	{
 		if (entity && ChimeraCharacter.Cast(entity))
-			m_aOrphanScanResults.Insert(entity);
+			m_aBzOrphanScanResults.Insert(entity);
 		return true;
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Wait for the save system to be ready before arming the periodic autosave.
-	protected void TryStartAutoSave()
+	protected void BZ_TryStartAutoSave()
 	{
-		if (m_bAutoSaveScheduled || m_fAutoSaveInterval <= 0)
+		if (m_bBzAutoSaveScheduled)
 			return;
 
 		SaveGameManager saveManager = GetGame().GetSaveGameManager();
 		if (!saveManager || !saveManager.IsSavingPossible())
 		{
-			GetGame().GetCallqueue().CallLater(TryStartAutoSave, AUTOSAVE_START_RETRY_MS, false);
+			GetGame().GetCallqueue().CallLater(BZ_TryStartAutoSave, BZ_AUTOSAVE_START_RETRY_MS, false);
 			return;
 		}
 
-		StartAutoSave();
+		m_bBzAutoSaveEnabled = true;
+		m_bBzAutoSaveScheduled = true;
+		int intervalMs = BZ_AUTOSAVE_INTERVAL_SEC * 1000;
+		GetGame().GetCallqueue().CallLater(BZ_PerformAutoSave, intervalMs, true);
+		Print(string.Format("[BrasilZ] Autosave armed every %1s", BZ_AUTOSAVE_INTERVAL_SEC), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected void StartAutoSave()
+	protected void BZ_PerformAutoSave()
 	{
-		if (m_fAutoSaveInterval <= 0)
-			return;
-
-		m_bAutoSaveEnabled = true;
-		m_bAutoSaveScheduled = true;
-		int intervalMs = m_fAutoSaveInterval * 1000;
-		GetGame().GetCallqueue().CallLater(PerformAutoSave, intervalMs, true);
-		Print(string.Format("[BrasilZ] Autosave armed every %1s", m_fAutoSaveInterval), LogLevel.NORMAL);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	protected void PerformAutoSave()
-	{
-		if (!m_bAutoSaveEnabled)
+		if (!m_bBzAutoSaveEnabled)
 			return;
 
 		SaveGameManager saveManager = GetGame().GetSaveGameManager();
 		if (!saveManager || !saveManager.IsSavingPossible())
 			return;
 
-		if (!OverwriteLatestSave(saveManager))
+		if (!BZ_OverwriteLatestSave(saveManager))
 			Print("[BrasilZ] PerformAutoSave: no save to overwrite", LogLevel.WARNING);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	void StopAutoSave()
+	static bool BZ_OverwriteLatestSave(SaveGameManager saveManager)
 	{
-		m_bAutoSaveEnabled = false;
-		m_bAutoSaveScheduled = false;
-		GetGame().GetCallqueue().Remove(PerformAutoSave);
+		if (!saveManager || !saveManager.IsSavingPossible())
+			return false;
+
+		SaveGame active = saveManager.GetActiveSave();
+		if (active)
+			return saveManager.RequestSavePointOverwrite(active, ESaveGameRequestFlags.BLOCKING);
+
+		array<SaveGame> saves = {};
+		int count = saveManager.GetSaves(saves);
+		if (count > 0)
+		{
+			SaveGame latest = saves[count - 1];
+			return saveManager.RequestSavePointOverwrite(latest, ESaveGameRequestFlags.BLOCKING);
+		}
+
+		return false;
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Force a single save to disk with SHUTDOWN flag — call from admin/restart hooks before server close.
-	void ForceSaveNow()
+	protected void BZ_FlushSaveToDisk()
 	{
 		SaveGameManager saveManager = GetGame().GetSaveGameManager();
 		if (!saveManager)
@@ -256,137 +243,79 @@ class BZ_GameMode : SCR_BaseGameMode
 
 		if (!saveManager.IsSavingPossible())
 		{
-			GetGame().GetCallqueue().CallLater(ForceSaveNow, 3000, false);
+			m_iBzFlushRetryCount++;
+			if (m_iBzFlushRetryCount < 10)
+				GetGame().GetCallqueue().CallLater(BZ_FlushSaveToDisk, 1000, false);
 			return;
 		}
 
-		SaveGame saveToOverwrite = saveManager.GetActiveSave();
-		if (!saveToOverwrite)
-		{
-			array<SaveGame> saves = {};
-			int count = saveManager.GetSaves(saves);
-			if (count > 0)
-				saveToOverwrite = saves[count - 1];
-		}
-
-		if (!saveToOverwrite)
-		{
-			Print("[BrasilZ] ForceSaveNow: no save found to overwrite", LogLevel.WARNING);
-			return;
-		}
-
-		bool queued = saveManager.RequestSavePointOverwrite(saveToOverwrite, ESaveGameRequestFlags.SHUTDOWN);
-		Print(string.Format("[BrasilZ] ForceSaveNow: overwriting save with SHUTDOWN flag, queued=%1", queued), LogLevel.NORMAL);
+		m_iBzFlushRetryCount = 0;
+		BZ_OverwriteLatestSave(saveManager);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Overwrite the latest save point with BLOCKING flag so disconnect/death state is flushed to disk.
-	// Creating a new save would wipe disconnected player data.
-	static bool OverwriteLatestSave(SaveGameManager saveManager)
+	void BZ_TrackCorpseForCleanup(IEntity corpse)
 	{
-		if (!saveManager || !saveManager.IsSavingPossible())
-		{
-			Print("[BrasilZ] OverwriteLatestSave: saving not possible", LogLevel.WARNING);
-			return false;
-		}
+		if (!corpse || BZ_CORPSE_LIFETIME_SEC <= 0)
+			return;
 
-		SaveGame active = saveManager.GetActiveSave();
-		if (active)
-		{
-			bool queued = saveManager.RequestSavePointOverwrite(active, ESaveGameRequestFlags.BLOCKING);
-			return queued;
-		}
+		if (m_aBzTrackedCorpses.Contains(corpse))
+			return;
 
-		array<SaveGame> saves = {};
-		int count = saveManager.GetSaves(saves);
-		if (count > 0)
-		{
-			SaveGame latest = saves[count - 1];
-			bool queued = saveManager.RequestSavePointOverwrite(latest, ESaveGameRequestFlags.BLOCKING);
-			return queued;
-		}
-
-		Print("[BrasilZ] OverwriteLatestSave: no saves found", LogLevel.WARNING);
-		return false;
+		m_aBzTrackedCorpses.Insert(corpse);
+		m_aBzCorpseDeathTimes.Insert(System.GetTickCount());
 	}
 
 	//------------------------------------------------------------------------------------------------
-	override void OnPlayerDisconnected(int playerId, KickCauseCode cause = KickCauseCode.NONE, int timeout = -1)
+	protected void BZ_TickCorpseCleanup()
 	{
-		if (IsProxy())
-		{
-			super.OnPlayerDisconnected(playerId, cause, timeout);
+		if (BZ_CORPSE_LIFETIME_SEC <= 0 || m_aBzTrackedCorpses.IsEmpty())
 			return;
-		}
 
-		PlayerManager pm = GetGame().GetPlayerManager();
-		IEntity playerEntity = null;
-		if (pm)
-			playerEntity = pm.GetPlayerControlledEntity(playerId);
+		int currentTime = System.GetTickCount();
+		float lifetimeMs = BZ_CORPSE_LIFETIME_SEC * 1000;
 
-		bool preserveBody = false;
-
-		if (playerEntity)
+		for (int i = m_aBzTrackedCorpses.Count() - 1; i >= 0; i--)
 		{
-			// Anti-ALT+F4: if disconnecting while dying/dead, persist a death flag keyed by UID
-			// so reconnect can reject stale alive saves.
-			if (BZ_Utils.IsCharacterDying(playerEntity))
+			IEntity corpse = m_aBzTrackedCorpses[i];
+			if (!corpse)
 			{
-				string dyingUid = BZ_Utils.GetPlayerUID(playerId);
-				if (!dyingUid.IsEmpty())
-				{
-					BZ_PlayerDeathRegistry registry = BZ_PlayerDeathRegistry.GetInstance();
-					if (registry)
-					{
-						registry.FlagDead(dyingUid);
-						registry.TrackDeadBody(playerId, playerEntity);
-						Print(string.Format("[BrasilZ] Anti-ALT+F4: flagged UID %1 as dead on disconnect", dyingUid), LogLevel.WARNING);
-					}
-				}
+				m_aBzTrackedCorpses.Remove(i);
+				m_aBzCorpseDeathTimes.Remove(i);
+				continue;
 			}
 
-			SCR_CharacterControllerComponent charController = SCR_CharacterControllerComponent.Cast(playerEntity.FindComponent(SCR_CharacterControllerComponent));
-			if (charController)
+			float ageMs = currentTime - m_aBzCorpseDeathTimes[i];
+			if (ageMs >= lifetimeMs)
 			{
-				ECharacterLifeState lifeState = charController.GetLifeState();
-				if (lifeState == ECharacterLifeState.DEAD)
-				{
-					DecoupleDeadBody(playerEntity, playerId);
-					preserveBody = true;
-				}
-				else if (lifeState == ECharacterLifeState.INCAPACITATED)
-				{
-					DecoupleUnconsciousBody(playerEntity, playerId);
-					preserveBody = true;
-				}
+				Print(string.Format("[BrasilZ] Cleaning up corpse at %1 (age: %2s)", corpse.GetOrigin(), ageMs / 1000), LogLevel.NORMAL);
+				m_aBzTrackedCorpses.Remove(i);
+				m_aBzCorpseDeathTimes.Remove(i);
+				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
 			}
 		}
-
-		if (preserveBody)
-		{
-			SavePlayerAndFlushToDisk(playerId);
-
-			// Replicate SCR_BaseGameMode.OnPlayerDisconnected behaviour without deleting the body
-			m_OnPlayerDisconnected.Invoke(playerId, cause, timeout);
-			foreach (SCR_BaseGameModeComponent comp : m_aAdditionalGamemodeComponents)
-				comp.OnPlayerDisconnected(playerId, cause, timeout);
-			m_OnPostCompPlayerDisconnected.Invoke(playerId, cause, timeout);
-			if (m_pRespawnSystemComponent)
-				m_pRespawnSystemComponent.OnPlayerDisconnected_S(playerId, cause, timeout);
-			return;
-		}
-
-		// Alive disconnect: let the engine SAVE the character into SCR_ReconnectComponent's
-		// reconnect list. The audit timer (vanilla default + BZ_ReconnectComponent override) cleans
-		// the body when it expires, and the same path also catches orphan bodies recreated from
-		// the persistence save after a server restart.
-		SavePlayerAndFlushToDisk(playerId);
-		super.OnPlayerDisconnected(playerId, cause, timeout);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Kill the unconscious body and rebind persistence so it stays in world as an independent corpse.
-	protected void DecoupleUnconsciousBody(IEntity body, int playerId)
+	protected void BZ_DecoupleDeadBody(IEntity body, int playerId)
+	{
+		if (!body)
+			return;
+
+		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetByEntityWorld(body);
+		if (!persistence || persistence.GetState() != EPersistenceSystemState.ACTIVE)
+			return;
+
+		persistence.StopTracking(body);
+		persistence.StartTracking(body);
+		persistence.Save(body, ESaveGameType.AUTO);
+
+		BZ_TrackCorpseForCleanup(body);
+		Print(string.Format("[BrasilZ] Dead body decoupled for player %1", playerId), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_DecoupleUnconsciousBody(IEntity body, int playerId)
 	{
 		if (!body)
 			return;
@@ -406,76 +335,12 @@ class BZ_GameMode : SCR_BaseGameMode
 		persistence.StartTracking(body);
 		persistence.Save(body, ESaveGameType.AUTO);
 
-		TrackCorpseForCleanup(body);
+		BZ_TrackCorpseForCleanup(body);
 		Print(string.Format("[BrasilZ] Unconscious body decoupled for player %1", playerId), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Rebind dead body persistence so it stays in world independent of the disconnecting player.
-	protected void DecoupleDeadBody(IEntity body, int playerId)
-	{
-		if (!body)
-			return;
-
-		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetByEntityWorld(body);
-		if (!persistence || persistence.GetState() != EPersistenceSystemState.ACTIVE)
-			return;
-
-		persistence.StopTracking(body);
-		persistence.StartTracking(body);
-		persistence.Save(body, ESaveGameType.AUTO);
-
-		TrackCorpseForCleanup(body);
-		Print(string.Format("[BrasilZ] Dead body decoupled for player %1", playerId), LogLevel.NORMAL);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Track corpse for timed cleanup so dead entities don't accumulate forever.
-	void TrackCorpseForCleanup(IEntity corpse)
-	{
-		if (!corpse || m_fCorpseLifetimeSec <= 0)
-			return;
-
-		if (m_aTrackedCorpses.Contains(corpse))
-			return;
-
-		m_aTrackedCorpses.Insert(corpse);
-		m_aCorpseDeathTimes.Insert(System.GetTickCount());
-	}
-
-	//------------------------------------------------------------------------------------------------
-	protected void TickCorpseCleanup()
-	{
-		if (m_fCorpseLifetimeSec <= 0 || m_aTrackedCorpses.IsEmpty())
-			return;
-
-		int currentTime = System.GetTickCount();
-		float lifetimeMs = m_fCorpseLifetimeSec * 1000;
-
-		for (int i = m_aTrackedCorpses.Count() - 1; i >= 0; i--)
-		{
-			IEntity corpse = m_aTrackedCorpses[i];
-			if (!corpse)
-			{
-				m_aTrackedCorpses.Remove(i);
-				m_aCorpseDeathTimes.Remove(i);
-				continue;
-			}
-
-			float ageMs = currentTime - m_aCorpseDeathTimes[i];
-			if (ageMs >= lifetimeMs)
-			{
-				Print(string.Format("[BrasilZ] Cleaning up corpse at %1 (age: %2s)", corpse.GetOrigin(), ageMs / 1000), LogLevel.NORMAL);
-				m_aTrackedCorpses.Remove(i);
-				m_aCorpseDeathTimes.Remove(i);
-				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
-			}
-		}
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Save controller + character to persistence and flush to disk so disconnect state survives crash/restart.
-	protected void SavePlayerAndFlushToDisk(int playerId)
+	protected void BZ_SavePlayerAndFlushToDisk(int playerId)
 	{
 		PlayerManager pm = GetGame().GetPlayerManager();
 		if (!pm)
@@ -499,42 +364,86 @@ class BZ_GameMode : SCR_BaseGameMode
 
 		if (!saveManager.IsSavingPossible())
 		{
-			GetGame().GetCallqueue().CallLater(FlushSaveToDisk, 1000, false);
+			GetGame().GetCallqueue().CallLater(BZ_FlushSaveToDisk, 1000, false);
 			return;
 		}
 
-		if (!OverwriteLatestSave(saveManager))
-			Print("[BrasilZ] SavePlayerAndFlushToDisk: no save to overwrite", LogLevel.WARNING);
+		BZ_OverwriteLatestSave(saveManager);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	protected void FlushSaveToDisk()
+	override void OnPlayerDisconnected(int playerId, KickCauseCode cause = KickCauseCode.NONE, int timeout = -1)
 	{
-		SaveGameManager saveManager = GetGame().GetSaveGameManager();
-		if (!saveManager)
-			return;
-
-		if (!saveManager.IsSavingPossible())
+		if (BZ_IsProxy())
 		{
-			m_iFlushRetryCount++;
-			if (m_iFlushRetryCount < 10)
-				GetGame().GetCallqueue().CallLater(FlushSaveToDisk, 1000, false);
+			super.OnPlayerDisconnected(playerId, cause, timeout);
 			return;
 		}
 
-		m_iFlushRetryCount = 0;
-		if (!OverwriteLatestSave(saveManager))
-			Print("[BrasilZ] FlushSaveToDisk: no save to overwrite", LogLevel.WARNING);
+		PlayerManager pm = GetGame().GetPlayerManager();
+		IEntity playerEntity = null;
+		if (pm)
+			playerEntity = pm.GetPlayerControlledEntity(playerId);
+
+		bool preserveBody = false;
+
+		if (playerEntity)
+		{
+			// Anti-ALT+F4 death flag
+			if (BZ_Utils.IsCharacterDying(playerEntity))
+			{
+				string dyingUid = BZ_Utils.GetPlayerUID(playerId);
+				if (!dyingUid.IsEmpty())
+				{
+					BZ_PlayerDeathRegistry registry = BZ_PlayerDeathRegistry.GetInstance();
+					if (registry)
+					{
+						registry.FlagDead(dyingUid);
+						registry.TrackDeadBody(playerId, playerEntity);
+						Print(string.Format("[BrasilZ] Anti-ALT+F4: flagged UID %1 as dead on disconnect", dyingUid), LogLevel.WARNING);
+					}
+				}
+			}
+
+			SCR_CharacterControllerComponent charController = SCR_CharacterControllerComponent.Cast(playerEntity.FindComponent(SCR_CharacterControllerComponent));
+			if (charController)
+			{
+				ECharacterLifeState lifeState = charController.GetLifeState();
+				if (lifeState == ECharacterLifeState.DEAD)
+				{
+					BZ_DecoupleDeadBody(playerEntity, playerId);
+					preserveBody = true;
+				}
+				else if (lifeState == ECharacterLifeState.INCAPACITATED)
+				{
+					BZ_DecoupleUnconsciousBody(playerEntity, playerId);
+					preserveBody = true;
+				}
+			}
+		}
+
+		if (preserveBody)
+		{
+			BZ_SavePlayerAndFlushToDisk(playerId);
+			m_OnPlayerDisconnected.Invoke(playerId, cause, timeout);
+			foreach (SCR_BaseGameModeComponent comp : m_aAdditionalGamemodeComponents)
+				comp.OnPlayerDisconnected(playerId, cause, timeout);
+			m_OnPostCompPlayerDisconnected.Invoke(playerId, cause, timeout);
+			if (m_pRespawnSystemComponent)
+				m_pRespawnSystemComponent.OnPlayerDisconnected_S(playerId, cause, timeout);
+			return;
+		}
+
+		BZ_SavePlayerAndFlushToDisk(playerId);
+		super.OnPlayerDisconnected(playerId, cause, timeout);
 	}
 
 	//------------------------------------------------------------------------------------------------
-	// Persist death flag and decouple corpse when player dies on the server (so disconnect-during-death
-	// doesn't roll the player back to an alive save).
 	override void OnPlayerKilled(int playerId, IEntity playerEntity, IEntity killerEntity, notnull Instigator killer)
 	{
 		super.OnPlayerKilled(playerId, playerEntity, killerEntity, killer);
 
-		if (IsProxy() || !playerEntity)
+		if (BZ_IsProxy() || !playerEntity)
 			return;
 
 		string deadUid = BZ_Utils.GetPlayerUID(playerId);
@@ -548,7 +457,7 @@ class BZ_GameMode : SCR_BaseGameMode
 			}
 		}
 
-		DecoupleDeadBody(playerEntity, playerId);
+		BZ_DecoupleDeadBody(playerEntity, playerId);
 
 		PlayerManager pm = GetGame().GetPlayerManager();
 		if (pm)
@@ -564,6 +473,6 @@ class BZ_GameMode : SCR_BaseGameMode
 
 		SaveGameManager saveManager = GetGame().GetSaveGameManager();
 		if (saveManager && saveManager.IsSavingPossible())
-			OverwriteLatestSave(saveManager);
+			BZ_OverwriteLatestSave(saveManager);
 	}
 }
