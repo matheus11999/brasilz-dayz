@@ -209,6 +209,13 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			// Highest map peak ~600m → post-sink max Y ≈ -400. Use -100: anyone below it
 			// was buried by us; ocean diver at Y~-30 is legitimately placed and stays.
 			const float BURIED_SENTINEL_Y = -100.0;
+			// Surface-rescue threshold: a save where the character is below sea level (but not
+			// buried) means the player disconnected while submerged. On reconnect they would
+			// respawn underwater and drown within seconds. Lift to SURFACE_RESCUE_Y to pop
+			// them above the waterline. Observed in production: CaverinhaTV restored at
+			// Y=-1.3986 → entity lost / dead body decoupled within the same frame.
+			const float SURFACE_RESCUE_Y = 1.0;
+
 			if (pos[1] < BURIED_SENTINEL_Y)
 			{
 				SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(player.FindComponent(SCR_CharacterDamageManagerComponent));
@@ -218,6 +225,20 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 				GetGame().GetCallqueue().CallLater(BZ_LiftAfterPossess, 250, false, player, pos);
 
 				Print(string.Format("[BrasilZ] Player %1 buried at %2 → damage disabled, lift deferred 250ms past super possess", playerId, pos), LogLevel.NORMAL);
+			}
+			else if (pos[1] < SURFACE_RESCUE_Y)
+			{
+				// Submerged but not buried — disable damage briefly and defer a small lift
+				// to surface so the player pops up out of the water on reconnect.
+				SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(player.FindComponent(SCR_CharacterDamageManagerComponent));
+				if (charDmg)
+					charDmg.EnableDamageHandling(false);
+
+				vector surfacePos = pos;
+				surfacePos[1] = SURFACE_RESCUE_Y;
+				GetGame().GetCallqueue().CallLater(BZ_LiftToSurfaceAfterPossess, 250, false, player, surfacePos);
+
+				Print(string.Format("[BrasilZ] Player %1 submerged at %2 → damage disabled, surface lift to %3 deferred 250ms", playerId, pos, surfacePos), LogLevel.NORMAL);
 			}
 		}
 
@@ -235,6 +256,35 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	{
 		Print(string.Format("[BrasilZ] Player %1 entity lost → vanilla deploy menu opens in %2s", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
 		super.OnPlayerEntityLost_S(playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Deferred surface lift for players who disconnected while submerged. Moves the entity
+	// to the explicit surface position (X/Z preserved, Y forced above the waterline) and
+	// re-enables damage handling.
+	protected void BZ_LiftToSurfaceAfterPossess(IEntity entity, vector surfacePos)
+	{
+		if (!entity || entity.IsDeleted())
+			return;
+
+		BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
+		if (bgEntity)
+		{
+			vector transform[4];
+			bgEntity.GetWorldTransform(transform);
+			transform[3] = surfacePos;
+			bgEntity.Teleport(transform);
+		}
+		else
+		{
+			entity.SetOrigin(surfacePos);
+		}
+
+		SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(entity.FindComponent(SCR_CharacterDamageManagerComponent));
+		if (charDmg)
+			charDmg.EnableDamageHandling(true);
+
+		Print(string.Format("[BrasilZ] Surface rescue: %1 (damage re-enabled)", surfacePos), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
