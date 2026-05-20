@@ -43,6 +43,11 @@ RadioManagerEntity BrasilZ_RadioManager : "{B8E09FAB91C4ECCD}Prefabs/Systems/Rad
 }
 SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/ScenarioFramework/GameModeSF.et" {
  components {
+  BZ_GroupsManagerComponent "{5706EC99934496F5}" {
+   m_sDefaultGroupPrefab "{8B4D49A9F324E7D5}Prefabs/Groups/PlayableGroup.et"
+   m_iPlayableGroupFrequencyOffset 200
+   m_iPlayableGroupFrequencyMax 44400
+  }
   BZ_RespawnSystemComponent "{56B2B4793051E7C9}" {
    components {
     BZ_SpawnPointSpawnHandlerComponent "{46FBAB76AC42072F}" {
@@ -61,8 +66,6 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
     "{B70400000000A003}Prefabs/Characters/Character_BrasilZ_Survivor_BDU.et"
     "{B70400000000A004}Prefabs/Characters/Character_BrasilZ_Survivor_Worker.et"
    }
-   m_SpawnLogic BZ_MenuSpawnLogic "{695B7335262CB201}" {
-   }
   }
   FM_PersonalLockerManagerComponent "{B703000000000004}" {
    m_LockerPrefab "{B02EA50D6E2DA1DB}Prefabs/Storage/FM_PersonalLocker.et"
@@ -71,11 +74,6 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
    m_eNametagRelationFilters SHOW_GROUP_MEMBERS
   }
   SCR_DestructionManagerComponent "{258B34C52AD2128C}" {
-  }
-  BZ_GroupsManagerComponent "{5706EC99934496F5}" {
-   m_sDefaultGroupPrefab "{8B4D49A9F324E7D5}Prefabs/Groups/PlayableGroup.et"
-   m_iPlayableGroupFrequencyOffset 200
-   m_iPlayableGroupFrequencyMax 44400
   }
   SCR_HintManagerComponent "{59A268576D56E32A}" {
   }

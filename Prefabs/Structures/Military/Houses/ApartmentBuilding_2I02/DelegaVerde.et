@@ -1,0 +1,994 @@
+SCR_DestructibleBuildingEntity : "{58B9C357D55516E4}Prefabs/Structures/Military/Houses/ApartmentBuilding_2I02/ApartmentBuilding_USSR_2I02_base.et" {
+ ID "F0DBA538AC2A0552"
+ {
+  GenericEntity {
+   ID "65F88342B5286065"
+   {
+    GenericEntity {
+     ID "65F06105C1002302"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1005F69"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1005F6A"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1005F6B"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C101DB15"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C102EA52"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12C18F6"
+     components {
+      FM_CatalogLootSpawnerComponent "{68EC40EA8E0B499E}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC40EA8D6939F1}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12C18F7"
+     components {
+      FM_CatalogLootSpawnerComponent "{68EC40EA8E0B499E}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC40EA8D6939F1}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12CCC11"
+     components {
+      FM_CatalogLootSpawnerComponent "{68EC40EA8E0B499E}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC40EA8D6939F1}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12CCC12"
+     components {
+      FM_CatalogLootSpawnerComponent "{68EC40EA8E0B499E}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC40EA8D6939F1}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12CCC13"
+     components {
+      FM_CatalogLootSpawnerComponent "{68EC40EA8E0B499E}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC40EA8D6939F1}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12E2B58"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12E2B59"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12E2B5B"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12E59A8"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12E59A9"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12E59D6"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12ECC18"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12ECC19"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12ECC1F"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C12FA3C8"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1309428"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1309429"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C130942A"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C130942B"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C130C0D7"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C130C0D8"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C130C0D9"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13121A1"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13121AE"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13121AF"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13170DC"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13170DE"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13170DF"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1318890"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1318891"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1318A3A"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1318A3C"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1318A3D"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C131EBAC"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C131EBAD"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C131EBAE"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33CA771D2D13}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33CA77C533F2}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13216EC"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13216ED"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13216EF"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C132FD82"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C132FD8D"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13329BA"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13329BB"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13329BD"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1338A32"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1338A33"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1338A34"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133B830"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133B832"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133B833"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133E099"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133E09A"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133E09B"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133E755"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133E76A"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C133E76B"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13421D2"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13421D3"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13421D4"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C134CE40"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C134CE41"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1359D94"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C1359D97"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13D4341"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D9066101B2D5}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC0AC57DA80CC3}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13D4343"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D9066101B2D5}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC0AC57DA80CC3}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13D4344"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D9066101B2D5}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC0AC57DA80CC3}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13D4346"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D9066101B2D5}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC0AC57DA80CC3}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13D435E"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D90908F53D8A}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EB78678F498DBF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13D435F"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D9066101B2D5}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC0AC57DA80CC3}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13DDA45"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13DDA46"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13DDA58"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED33C5044D42B6}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED33C50B9F75B0}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13FB5F0"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13FB5F1"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13FBD36"
+     components {
+      FM_CatalogLootSpawnerComponent "{68ED505848A31F77}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68ED50584FCA87FF}" {
+         m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
+        }
+       }
+      }
+     }
+    }
+    GenericEntity {
+     ID "65F06105C13FFD95"
+     components {
+      FM_CatalogLootSpawnerComponent "{6874D9066101B2D5}" {
+       m_aLootSlots {
+        FM_CatalogLootSlot "{68EC0AC57DA80CC3}" {
+         m_sCatalogResource "{3872918C0EC3B27D}Configs/DelegaEscrivaninha.conf"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

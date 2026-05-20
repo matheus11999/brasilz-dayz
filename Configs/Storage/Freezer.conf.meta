@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B705000000006000}Configs/Storage/Freezer.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}

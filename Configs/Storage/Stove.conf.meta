@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B705000000004000}Configs/Storage/Stove.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}

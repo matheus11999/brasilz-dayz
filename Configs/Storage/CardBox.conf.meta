@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B705000000002000}Configs/Storage/CardBox.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}

@@ -1,0 +1,15 @@
+GenericEntity : "{10C26F96EF7A8CF5}Prefabs/Props/Core/Props_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  FM_CatalogLootSpawnerComponent "{B705F01000000001}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{B705F01000000002}" {
+     m_sCatalogResource "{B705000000005000}Configs/Storage/StoveIndustrial.conf"
+     m_fSpawnChance 0.18
+     m_iMinItems 0
+     m_iMaxItems 1
+    }
+   }
+  }
+ }
+}

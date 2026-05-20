@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B705000000007000}Configs/Storage/FirstAidBox.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}

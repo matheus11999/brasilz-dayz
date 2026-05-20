@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B70500000000B000}Configs/Storage/Bookshelf.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}

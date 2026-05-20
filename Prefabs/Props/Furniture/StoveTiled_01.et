@@ -1,0 +1,15 @@
+GenericEntity : "{533AC2E8A0F5272A}Prefabs/Structures/BuildingParts/BuildingParts_Base.et" {
+ ID "5111E74D4E7A8DB6"
+ components {
+  FM_CatalogLootSpawnerComponent "{B705F00E00000001}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{B705F00E00000002}" {
+     m_sCatalogResource "{B705000000004000}Configs/Storage/Stove.conf"
+     m_fSpawnChance 0.14
+     m_iMinItems 0
+     m_iMaxItems 1
+    }
+   }
+  }
+ }
+}

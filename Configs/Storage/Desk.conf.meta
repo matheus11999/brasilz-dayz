@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B70500000000A000}Configs/Storage/Desk.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}

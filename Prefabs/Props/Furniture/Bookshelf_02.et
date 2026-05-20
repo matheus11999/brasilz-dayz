@@ -1,0 +1,15 @@
+GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
+ ID "F0DBA538AC2A0552"
+ components {
+  FM_CatalogLootSpawnerComponent "{B705F01C00000001}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{B705F01C00000002}" {
+     m_sCatalogResource "{B70500000000B000}Configs/Storage/Bookshelf.conf"
+     m_fSpawnChance 0.12
+     m_iMinItems 0
+     m_iMaxItems 1
+    }
+   }
+  }
+ }
+}

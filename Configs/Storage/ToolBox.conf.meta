@@ -1,0 +1,7 @@
+MetaFileClass {
+ Name "{B705000000008000}Configs/Storage/ToolBox.conf"
+ Configurations {
+  ResourceClass PC {
+  }
+ }
+}
