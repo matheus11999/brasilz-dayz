@@ -18,8 +18,12 @@ modded class SCR_BaseGameMode : BaseGameMode
 	protected static const int BZ_ORPHAN_GRACE_MS = 30000;
 	protected static const float BZ_ORPHAN_SCAN_RADIUS = 20000.0;
 	protected static const float BZ_ORPHAN_UNDERGROUND_OFFSET = 1000.0;
+	protected static const float BZ_CORPSE_LIFETIME_SEC = 1800.0; // 30 minutes
+	protected static const int BZ_CORPSE_CLEANUP_INTERVAL_MS = 60000;
 
 	protected ref array<IEntity> m_aBzOrphanScanResults;
+	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
+	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
 
 	protected bool m_bBzAutoSaveEnabled;
 	protected bool m_bBzAutoSaveScheduled;
@@ -47,12 +51,9 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (BZ_IsProxy())
 			return;
 
-		Print("[BrasilZ][GameMode] EOnInit fired. Arming autosave + boot scan.", LogLevel.NORMAL);
+		Print("[BrasilZ][GameMode] EOnInit fired. Arming autosave + corpse cleanup + boot scan.", LogLevel.NORMAL);
 
-		// No periodic corpse-cleanup tick — corpses only become "orphaned" after a server
-		// restart (their in-memory tracker is gone). The boot scan handles them once per boot;
-		// new corpses from in-session deaths stay lootable until the next restart, then get
-		// cleaned by the next boot scan.
+		GetGame().GetCallqueue().CallLater(BZ_TickCorpseCleanup, BZ_CORPSE_CLEANUP_INTERVAL_MS, true);
 		GetGame().GetCallqueue().CallLater(BZ_TryStartAutoSave, BZ_AUTOSAVE_START_DELAY_MS, false);
 		GetGame().GetCallqueue().CallLater(BZ_TryArmOrphanScan, 1000, false);
 	}
@@ -272,7 +273,8 @@ modded class SCR_BaseGameMode : BaseGameMode
 		persistence.StartTracking(body);
 		persistence.Save(body, ESaveGameType.AUTO);
 
-		Print(string.Format("[BrasilZ] Dead body decoupled for player %1", playerId), LogLevel.NORMAL);
+		BZ_TrackCorpseForCleanup(body);
+		Print(string.Format("[BrasilZ] Dead body decoupled for player %1 (30min lootable timer started)", playerId), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -296,7 +298,55 @@ modded class SCR_BaseGameMode : BaseGameMode
 		persistence.StartTracking(body);
 		persistence.Save(body, ESaveGameType.AUTO);
 
-		Print(string.Format("[BrasilZ] Unconscious body decoupled for player %1", playerId), LogLevel.NORMAL);
+		BZ_TrackCorpseForCleanup(body);
+		Print(string.Format("[BrasilZ] Unconscious body decoupled for player %1 (30min lootable timer started)", playerId), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Track a freshly-made corpse so the 60s cleanup tick can delete it after 30min lifetime.
+	// Note: tracker is in memory — corpses from before a restart won't get cleaned automatically
+	// (their entries are lost), they linger until an admin removes them or another mechanism
+	// handles them. In-session corpses get the proper 30min lifetime.
+	void BZ_TrackCorpseForCleanup(IEntity corpse)
+	{
+		if (!corpse || BZ_CORPSE_LIFETIME_SEC <= 0)
+			return;
+
+		if (m_aBzTrackedCorpses.Contains(corpse))
+			return;
+
+		m_aBzTrackedCorpses.Insert(corpse);
+		m_aBzCorpseDeathTimes.Insert(System.GetTickCount());
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_TickCorpseCleanup()
+	{
+		if (BZ_CORPSE_LIFETIME_SEC <= 0 || m_aBzTrackedCorpses.IsEmpty())
+			return;
+
+		int currentTime = System.GetTickCount();
+		float lifetimeMs = BZ_CORPSE_LIFETIME_SEC * 1000;
+
+		for (int i = m_aBzTrackedCorpses.Count() - 1; i >= 0; i--)
+		{
+			IEntity corpse = m_aBzTrackedCorpses[i];
+			if (!corpse)
+			{
+				m_aBzTrackedCorpses.Remove(i);
+				m_aBzCorpseDeathTimes.Remove(i);
+				continue;
+			}
+
+			float ageMs = currentTime - m_aBzCorpseDeathTimes[i];
+			if (ageMs >= lifetimeMs)
+			{
+				Print(string.Format("[BrasilZ] Cleaning up corpse at %1 (age: %2min)", corpse.GetOrigin(), ageMs / 60000), LogLevel.NORMAL);
+				m_aBzTrackedCorpses.Remove(i);
+				m_aBzCorpseDeathTimes.Remove(i);
+				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
+			}
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
