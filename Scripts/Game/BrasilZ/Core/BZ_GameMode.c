@@ -150,7 +150,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 		world.QueryEntitiesBySphere(vector.Zero, BZ_ORPHAN_SCAN_RADIUS, BZ_QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
 
 		PlayerManager pm = GetGame().GetPlayerManager();
-		int buried = 0;
+		int deleted = 0;
 		int wipedMissionAi = 0;
 
 		foreach (IEntity entity : m_aBzOrphanScanResults)
@@ -166,10 +166,6 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (pm && pm.GetPlayerIdFromControlledEntity(entity) > 0)
 				continue;
 
-			// Already buried (previous scan or hide-on-disconnect).
-			if (entity.GetOrigin()[1] <= -1.0)
-				continue;
-
 			// Skip dead/INCAPACITATED corpses — those are PvP loot and MUST stay visible
 			// across restarts so a kill 5 minutes before reboot doesn't get wiped on boot.
 			// Corpses accumulate forever; admin can clean manually if needed.
@@ -181,30 +177,20 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
 				continue;
 
-			BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
-			if (!bgEntity)
-				continue;
+			// DELETE alive orphan bodies instead of burying. SessionStorage already holds the
+			// player's last legit save (position, inventory, health). Leaving the body alive
+			// underground caused autosave to persist the buried Y-1000 over the legit save,
+			// making the player respawn at sea floor on reconnect. Deleting the entity removes
+			// the bad source of truth; vanilla restores from SessionStorage cleanly.
+			vector orphanPos = entity.GetOrigin();
+			SCR_EntityHelper.DeleteEntityAndChildren(entity);
 
-			// Disable damage so the body doesn't die underground (engine has void/OOB death
-			// zones above Y=-1000). Without this the body dies, save persists dead, reconnect
-			// rejects, player loses progress.
-			SCR_CharacterDamageManagerComponent buriedDmg = SCR_CharacterDamageManagerComponent.Cast(character.FindComponent(SCR_CharacterDamageManagerComponent));
-			if (buriedDmg)
-				buriedDmg.EnableDamageHandling(false);
-
-			vector transform[4];
-			bgEntity.GetWorldTransform(transform);
-			vector pos = transform[3];
-			pos[1] = pos[1] - BZ_ORPHAN_UNDERGROUND_OFFSET;
-			transform[3] = pos;
-			bgEntity.Teleport(transform);
-
-			Print(string.Format("[BrasilZ][BootScan] Buried orphan body at %1 (damage disabled).", pos), LogLevel.NORMAL);
-			buried++;
+			Print(string.Format("[BrasilZ][BootScan] Deleted alive orphan body at %1 (SessionStorage save preserved).", orphanPos), LogLevel.NORMAL);
+			deleted++;
 		}
 
 		m_aBzOrphanScanResults = null;
-		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 alive orphan bodies. Dead corpses left for loot.", buried), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - deleted %1 alive orphan bodies. Dead corpses left for loot.", deleted), LogLevel.NORMAL);
 
 		// Mission AI wipe pass — delete leftover bandit chars from interrupted missions.
 		foreach (IEntity missionAi : m_aBzMissionAiResults)
