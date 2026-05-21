@@ -1,9 +1,6 @@
-GenericEntity Enorme : "{01AF412EA2C2F7E8}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Huge.et" {
- coords 1809.334 5.776 2276.812
+GenericEntity : "{01AF412EA2C2F7E8}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Huge.et" {
+ coords 1907.69 12.764 2243.108
 }
-GenericEntity Medium2 : "{DF5EE816FBAE02A7}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Medium.et" {
- coords 1736.805 7.729 2150.293
-}
-GenericEntity Pequena : "{FBE3EE3ACA3DB9D6}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Small.et" {
- coords 1773.884 15.201 2324.873
+GenericEntity : "{A6340D063CD1630A}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Large.et" {
+ coords 1832.285 9.666 2278.792
 }
