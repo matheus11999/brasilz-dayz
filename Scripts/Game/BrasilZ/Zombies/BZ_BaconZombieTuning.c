@@ -1,12 +1,23 @@
 // BrasilZ — reduz HP dos zombies BaconZombies pra escala DayZ.
-// Vanilla BaconZ usa stats de soldado militar (Health 100, Blood 6000). Player com
-// faca precisa muitos golpes pra matar. Modded class detecta zombie BACON e
-// reduz HP/Blood no OnInit.
+//
+// Vanilla BaconZ DamageManager_Character_Empty_Base.ct usa stats de soldado militar:
+//   Health     100
+//   Blood      6000
+//   Resilience 100
+//
+// Resultado: player precisa muitos hits de faca pra matar zombie. Não é DayZ-like
+// (1 headshot + 2-3 facadas body deveriam bastar).
+//
+// SDK não expõe SetMaxHealth na HitZone (só GetMaxHealth + GetDamageMultiplier).
+// Estratégia: usar SetHealth() pra reduzir HP atual logo no spawn. Health zone
+// não regenera (sem m_fFullRegenerationTime), então valor reduzido persiste até
+// o zombie morrer.
 modded class Bacon_622120A5448725E3_InfectedCharacter
 {
-	protected static const float BZ_ZOMBIE_HEALTH_MAX = 30.0;
-	protected static const float BZ_ZOMBIE_BLOOD_MAX = 2000.0;
-	protected static const float BZ_ZOMBIE_RESILIENCE_MAX = 30.0;
+	// Vida alvo pós-init. Vanilla = 100. Lower = morre mais rápido.
+	protected static const float BZ_ZOMBIE_HEALTH_TARGET = 30.0;
+	protected static const float BZ_ZOMBIE_BLOOD_TARGET = 2000.0;
+	protected static const float BZ_ZOMBIE_RESILIENCE_TARGET = 30.0;
 
 	//------------------------------------------------------------------------------------------------
 	override void EOnInit(IEntity owner)
@@ -16,31 +27,24 @@ modded class Bacon_622120A5448725E3_InfectedCharacter
 		if (!Replication.IsServer())
 			return;
 
-		SCR_CharacterDamageManagerComponent dmg = SCR_CharacterDamageManagerComponent.Cast(FindComponent(SCR_CharacterDamageManagerComponent));
+		SCR_CharacterDamageManagerComponent dmg = SCR_CharacterDamageManagerComponent.Cast(GetDamageManager());
 		if (!dmg)
 			return;
 
-		// HitZones têm getters por categoria. Override MaxHealth e re-seta health corrente
-		// pra novo cap (senão zombie spawna com 100 HP mesmo com cap 30).
+		// Lower health/blood/resilience absolute values. Vanilla zone caps em 100/6000/100.
+		// SetHealth aceita valor absoluto. Zombie dies normalmente ao chegar em 0.
 		HitZone healthZone = dmg.GetHitZoneByName("Health");
 		if (healthZone)
-		{
-			healthZone.SetMaxHealth(BZ_ZOMBIE_HEALTH_MAX);
-			healthZone.SetHealth(BZ_ZOMBIE_HEALTH_MAX);
-		}
+			healthZone.SetHealth(BZ_ZOMBIE_HEALTH_TARGET);
 
 		HitZone bloodZone = dmg.GetHitZoneByName("Blood");
 		if (bloodZone)
-		{
-			bloodZone.SetMaxHealth(BZ_ZOMBIE_BLOOD_MAX);
-			bloodZone.SetHealth(BZ_ZOMBIE_BLOOD_MAX);
-		}
+			bloodZone.SetHealth(BZ_ZOMBIE_BLOOD_TARGET);
 
 		HitZone resilienceZone = dmg.GetHitZoneByName("Resilience");
 		if (resilienceZone)
-		{
-			resilienceZone.SetMaxHealth(BZ_ZOMBIE_RESILIENCE_MAX);
-			resilienceZone.SetHealth(BZ_ZOMBIE_RESILIENCE_MAX);
-		}
+			resilienceZone.SetHealth(BZ_ZOMBIE_RESILIENCE_TARGET);
+
+		Print(string.Format("[BrasilZ][Zombie] HP tuned to %1 (blood %2, resilience %3)", BZ_ZOMBIE_HEALTH_TARGET, BZ_ZOMBIE_BLOOD_TARGET, BZ_ZOMBIE_RESILIENCE_TARGET), LogLevel.DEBUG);
 	}
 }
