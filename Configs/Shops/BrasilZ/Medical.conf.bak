@@ -11,12 +11,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{6946AE40F86F8EFE}" {
-     m_Quantity 50
+     m_Quantity 60
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{6946AE40F86F8EFC}" {
-     m_Quantity 10
+     m_Quantity 12
     }
    }
   }
@@ -31,12 +31,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DA9B64F3C8C}" {
-     m_Quantity 50
+     m_Quantity 60
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DA9B64F3C8B}" {
-     m_Quantity 10
+     m_Quantity 12
     }
    }
   }
@@ -51,12 +51,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DA9969D3159}" {
-     m_Quantity 400
+     m_Quantity 80
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DA9969D3158}" {
-     m_Quantity 80
+     m_Quantity 16
     }
    }
   }
@@ -71,12 +71,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DAA6234550F}" {
-     m_Quantity 1000
+     m_Quantity 100
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DAA6234550E}" {
-     m_Quantity 200
+     m_Quantity 20
     }
    }
   }
@@ -91,12 +91,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DAA30B0E77A}" {
-     m_Quantity 150
+     m_Quantity 60
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DAA30B0E779}" {
-     m_Quantity 30
+     m_Quantity 12
     }
    }
   }
@@ -111,12 +111,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DAAE01AEB64}" {
-     m_Quantity 150
+     m_Quantity 50
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DAAE01AEB63}" {
-     m_Quantity 30
+     m_Quantity 10
     }
    }
   }
@@ -131,12 +131,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DAAF98B98F0}" {
-     m_Quantity 400
+     m_Quantity 80
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DAAF98B98CF}" {
-     m_Quantity 80
+     m_Quantity 16
     }
    }
   }
@@ -151,12 +151,12 @@ ADM_ShopConfig {
    }
    m_BuyPayment {
     ADM_PaymentMethodCurrency "{69588DAAD6999D9F}" {
-     m_Quantity 1000
+     m_Quantity 100
     }
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{69588DAAD6999D9E}" {
-     m_Quantity 200
+     m_Quantity 20
     }
    }
   }

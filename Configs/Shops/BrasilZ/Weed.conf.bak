@@ -13,7 +13,7 @@ ADM_ShopConfig {
    }
    m_SellPayment {
     ADM_PaymentMethodCurrency "{694754D813690DD8}" {
-     m_Quantity 200
+     m_Quantity 1000
     }
    }
   }
