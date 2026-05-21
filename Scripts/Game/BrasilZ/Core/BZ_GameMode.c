@@ -21,6 +21,17 @@ modded class SCR_BaseGameMode : BaseGameMode
 	protected static const float BZ_CORPSE_LIFETIME_SEC = 1800.0; // 30 minutes
 	protected static const int BZ_CORPSE_CLEANUP_INTERVAL_MS = 60000;
 
+	// Whitelist of player character prefab resources used by BZ_RunOrphanScan to filter
+	// out AI/zombie/mission squad bodies. Only entities whose prefab matches one of these
+	// will be considered as player orphans for the boot bury sweep.
+	protected static ref array<ResourceName> s_aBzPlayerCharacterPrefabs = {
+		"{748B185D87E782EE}Prefabs/Characters/Character_BrasilZ_Survivor.et",
+		"{B70400000000A001}Prefabs/Characters/Character_BrasilZ_Survivor_M70.et",
+		"{B70400000000A002}Prefabs/Characters/Character_BrasilZ_Survivor_M88.et",
+		"{B70400000000A003}Prefabs/Characters/Character_BrasilZ_Survivor_BDU.et",
+		"{B70400000000A004}Prefabs/Characters/Character_BrasilZ_Survivor_Worker.et"
+	};
+
 	protected ref array<IEntity> m_aBzOrphanScanResults;
 	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
@@ -184,10 +195,33 @@ modded class SCR_BaseGameMode : BaseGameMode
 	}
 
 	//------------------------------------------------------------------------------------------------
+	// Filter callback. Only collect entities that:
+	//   1. Are ChimeraCharacters (filters out vehicles, props, etc).
+	//   2. Have a prefab in s_aBzPlayerCharacterPrefabs (filters out zombies / AI squads).
+	//
+	// Without the prefab check, the orphan sweep was burying BaconZombies infected and
+	// DarcMissions AI groups: log shows clusters of 10+ "orphan bodies" at <9368,-686,5991>
+	// (zombie horde) and <12884,-897,14608> (mission AI squad).
 	protected bool BZ_QueryCollectOrphanCandidate(IEntity entity)
 	{
-		if (entity && ChimeraCharacter.Cast(entity))
-			m_aBzOrphanScanResults.Insert(entity);
+		if (!entity)
+			return true;
+
+		if (!ChimeraCharacter.Cast(entity))
+			return true;
+
+		auto prefabData = entity.GetPrefabData();
+		if (!prefabData)
+			return true;
+
+		ResourceName prefab = prefabData.GetPrefabName();
+		if (prefab.IsEmpty())
+			return true;
+
+		if (!s_aBzPlayerCharacterPrefabs.Contains(prefab))
+			return true;
+
+		m_aBzOrphanScanResults.Insert(entity);
 		return true;
 	}
 
