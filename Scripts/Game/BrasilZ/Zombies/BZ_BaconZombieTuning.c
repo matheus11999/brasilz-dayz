@@ -20,7 +20,15 @@ modded class Bacon_622120A5448725E3_InfectedCharacter
 	// definem que abaixo de ~33% Blood/Resilience o char vai pra estado WOUNDED/INCAP.
 	// Zumbi com Blood 2000/6000 ou Resilience 30/100 nasce já em "critical" e cai morto
 	// no init. Só Health é seguro reduzir — não tem regen e cap em 0 mata.
-	protected static const float BZ_ZOMBIE_HEALTH_TARGET = 30.0;
+	protected static const float BZ_ZOMBIE_HEALTH_TARGET = 60.0;
+
+	// Perception multiplier para SCR_AICombatComponent. 1.0 = vanilla, <1.0 = detect range menor.
+	// Reduz quão longe zombie enxerga/escuta player. DayZ-like: zombie chase só quando perto.
+	protected static const float BZ_ZOMBIE_PERCEPTION_FACTOR = 0.4;
+
+	// Delay pra agente AI ser anexado antes de ajustar combat component. Padrão DarcCore
+	// usa AI_SETTING_DELAY ~2000ms; aqui copiamos comportamento.
+	protected static const int BZ_PERCEPTION_APPLY_DELAY_MS = 2000;
 
 	//------------------------------------------------------------------------------------------------
 	override void EOnInit(IEntity owner)
@@ -40,6 +48,22 @@ modded class Bacon_622120A5448725E3_InfectedCharacter
 		if (healthZone)
 			healthZone.SetHealth(BZ_ZOMBIE_HEALTH_TARGET);
 
-		Print(string.Format("[BrasilZ][Zombie] Health set to %1 (blood/resilience untouched)", BZ_ZOMBIE_HEALTH_TARGET), LogLevel.DEBUG);
+		// Deferred: agente AI pode não estar pronto no EOnInit, espera 2s.
+		GetGame().GetCallqueue().CallLater(BZ_ApplyPerception, BZ_PERCEPTION_APPLY_DELAY_MS, false, owner);
+
+		Print(string.Format("[BrasilZ][Zombie] Health set to %1, perception will lower to %2 in %3ms", BZ_ZOMBIE_HEALTH_TARGET, BZ_ZOMBIE_PERCEPTION_FACTOR, BZ_PERCEPTION_APPLY_DELAY_MS), LogLevel.DEBUG);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected static void BZ_ApplyPerception(IEntity owner)
+	{
+		if (!owner || owner.IsDeleted())
+			return;
+
+		SCR_AICombatComponent combat = SCR_AICombatComponent.Cast(owner.FindComponent(SCR_AICombatComponent));
+		if (!combat)
+			return;
+
+		combat.SetPerceptionFactor(BZ_ZOMBIE_PERCEPTION_FACTOR);
 	}
 }

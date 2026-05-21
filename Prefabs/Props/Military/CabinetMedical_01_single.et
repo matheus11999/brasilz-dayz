@@ -5,9 +5,9 @@ GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Pro
    m_aLootSlots {
     FM_CatalogLootSlot "{68ED5059B23A1BE2}" {
      m_sCatalogResource "{B704000000001000}Configs/DelegaArmarioVerde.conf"
-     m_fSpawnChance 1
      m_iMinItems 1
      m_iMaxItems 1
+     m_fSpawnChance 1
      m_bTier2 1
      m_bTier3 0
     }

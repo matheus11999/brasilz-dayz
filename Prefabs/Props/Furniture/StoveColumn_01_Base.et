@@ -5,9 +5,9 @@ GenericEntity : "{533AC2E8A0F5272A}Prefabs/Structures/BuildingParts/BuildingPart
    m_aLootSlots {
     FM_CatalogLootSlot "{B705F00F00000002}" {
      m_sCatalogResource "{B705000000004000}Configs/Storage/Stove.conf"
-     m_fSpawnChance 0.14
      m_iMinItems 0
      m_iMaxItems 1
+     m_fSpawnChance 0.14
     }
    }
   }

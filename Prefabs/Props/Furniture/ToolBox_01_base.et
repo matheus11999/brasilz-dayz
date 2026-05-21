@@ -5,9 +5,9 @@ GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Pro
    m_aLootSlots {
     FM_CatalogLootSlot "{B705F01400000002}" {
      m_sCatalogResource "{B705000000008000}Configs/Storage/ToolBox.conf"
-     m_fSpawnChance 0.25
      m_iMinItems 0
      m_iMaxItems 1
+     m_fSpawnChance 0.25
     }
    }
   }

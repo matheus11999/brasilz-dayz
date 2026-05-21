@@ -32,7 +32,18 @@ modded class SCR_BaseGameMode : BaseGameMode
 		"{B70400000000A004}Prefabs/Characters/Character_BrasilZ_Survivor_Worker.et"
 	};
 
+	// Faction keys for DarcMissions enemy AI. SDRC_AIHelper.SpawnGroup calls
+	// SpawnEntityPrefabPersistence on the SCR_AIGroup but individual AI chars may still
+	// survive across server restart. Boot wipes any leftover non-player-controlled chars
+	// belonging to these factions so the mission system can respawn cleanly.
+	// USSR is included because DarcMissions config sets it as fallback faction.
+	protected static ref array<string> s_aBzMissionEnemyFactionKeys = {
+		"PLASTICBANDIT",
+		"USSR"
+	};
+
 	protected ref array<IEntity> m_aBzOrphanScanResults;
+	protected ref array<IEntity> m_aBzMissionAiResults;
 	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
 
@@ -135,10 +146,12 @@ modded class SCR_BaseGameMode : BaseGameMode
 			return;
 
 		m_aBzOrphanScanResults = new array<IEntity>();
+		m_aBzMissionAiResults = new array<IEntity>();
 		world.QueryEntitiesBySphere(vector.Zero, BZ_ORPHAN_SCAN_RADIUS, BZ_QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
 
 		PlayerManager pm = GetGame().GetPlayerManager();
 		int buried = 0;
+		int wipedMissionAi = 0;
 
 		foreach (IEntity entity : m_aBzOrphanScanResults)
 		{
@@ -192,6 +205,22 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		m_aBzOrphanScanResults = null;
 		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - buried %1 alive orphan bodies. Dead corpses left for loot.", buried), LogLevel.NORMAL);
+
+		// Mission AI wipe pass — delete leftover bandit chars from interrupted missions.
+		foreach (IEntity missionAi : m_aBzMissionAiResults)
+		{
+			if (!missionAi || missionAi.IsDeleted())
+				continue;
+
+			if (pm && pm.GetPlayerIdFromControlledEntity(missionAi) > 0)
+				continue;
+
+			SCR_EntityHelper.DeleteEntityAndChildren(missionAi);
+			wipedMissionAi++;
+		}
+
+		m_aBzMissionAiResults = null;
+		Print(string.Format("[BrasilZ][BootScan] Mission AI wipe complete - removed %1 leftover mission AI entities (factions: %2).", wipedMissionAi, s_aBzMissionEnemyFactionKeys), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -218,10 +247,20 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (prefab.IsEmpty())
 			return true;
 
-		if (!s_aBzPlayerCharacterPrefabs.Contains(prefab))
+		if (s_aBzPlayerCharacterPrefabs.Contains(prefab))
+		{
+			m_aBzOrphanScanResults.Insert(entity);
 			return true;
+		}
 
-		m_aBzOrphanScanResults.Insert(entity);
+		FactionAffiliationComponent facComp = FactionAffiliationComponent.Cast(entity.FindComponent(FactionAffiliationComponent));
+		if (facComp)
+		{
+			Faction faction = facComp.GetAffiliatedFaction();
+			if (faction && s_aBzMissionEnemyFactionKeys.Contains(faction.GetFactionKey()))
+				m_aBzMissionAiResults.Insert(entity);
+		}
+
 		return true;
 	}
 
