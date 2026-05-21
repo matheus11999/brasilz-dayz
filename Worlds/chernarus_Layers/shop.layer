@@ -104,12 +104,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000103}" {
-        m_Quantity 100
+        m_Quantity 200
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000104}" {
-        m_Quantity 20
+        m_Quantity 40
        }
       }
      }
@@ -124,12 +124,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000203}" {
-        m_Quantity 500
+        m_Quantity 200
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000204}" {
-        m_Quantity 20
+        m_Quantity 40
        }
       }
      }
@@ -146,12 +146,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000304}" {
-        m_Quantity 16000
+        m_Quantity 50000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000305}" {
-        m_Quantity 2000
+        m_Quantity 10000
        }
       }
      }
@@ -168,12 +168,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000404}" {
-        m_Quantity 5000
+        m_Quantity 24000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000405}" {
-        m_Quantity 1250
+        m_Quantity 4800
        }
       }
      }
@@ -190,12 +190,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000504}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000505}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -212,12 +212,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000604}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000605}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -234,12 +234,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000704}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000705}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -256,12 +256,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000804}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000805}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -278,12 +278,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000904}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000905}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -300,12 +300,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000A04}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000A05}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -322,12 +322,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000B04}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000B05}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -344,12 +344,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000C04}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000C05}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -366,12 +366,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000D04}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000D05}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -388,12 +388,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000E04}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000E05}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -410,12 +410,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000000F04}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000000F05}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -432,12 +432,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001004}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001005}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -454,12 +454,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001104}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001105}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -476,12 +476,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001204}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001205}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -498,12 +498,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001304}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001305}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -520,12 +520,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001404}" {
-        m_Quantity 5000
+        m_Quantity 4000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001405}" {
-        m_Quantity 1250
+        m_Quantity 800
        }
       }
      }
@@ -542,12 +542,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001504}" {
-        m_Quantity 10000
+        m_Quantity 12000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001505}" {
-        m_Quantity 1250
+        m_Quantity 2400
        }
       }
      }
@@ -564,12 +564,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001604}" {
-        m_Quantity 10000
+        m_Quantity 12000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001605}" {
-        m_Quantity 2500
+        m_Quantity 2400
        }
       }
      }
@@ -586,12 +586,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001704}" {
-        m_Quantity 10000
+        m_Quantity 12000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001705}" {
-        m_Quantity 2500
+        m_Quantity 2400
        }
       }
      }
@@ -608,12 +608,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001804}" {
-        m_Quantity 10000
+        m_Quantity 12000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B750000000001805}" {
-        m_Quantity 2500
+        m_Quantity 2400
        }
       }
      }
@@ -630,7 +630,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001904}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -652,7 +652,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001A04}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -674,7 +674,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001B04}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -696,7 +696,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001C04}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -718,7 +718,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001D04}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -740,7 +740,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001E04}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -762,7 +762,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000001F04}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -784,7 +784,7 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B750000000002004}" {
-        m_Quantity 8000
+        m_Quantity 10000
        }
       }
       m_SellPayment {
@@ -837,12 +837,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B780000000000104}" {
-        m_Quantity 49920
+        m_Quantity 80000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B780000000000105}" {
-        m_Quantity 4000
+        m_Quantity 16000
        }
       }
      }
@@ -859,12 +859,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B780000000000204}" {
-        m_Quantity 41600
+        m_Quantity 80000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B780000000000205}" {
-        m_Quantity 2000
+        m_Quantity 16000
        }
       }
      }
@@ -881,12 +881,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B780000000000304}" {
-        m_Quantity 37440
+        m_Quantity 80000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B780000000000305}" {
-        m_Quantity 1800
+        m_Quantity 16000
        }
       }
      }
@@ -903,12 +903,12 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
       }
       m_BuyPayment {
        ADM_PaymentMethodCurrency "{B780000000000404}" {
-        m_Quantity 83200
+        m_Quantity 150000
        }
       }
       m_SellPayment {
        ADM_PaymentMethodCurrency "{B780000000000405}" {
-        m_Quantity 4000
+        m_Quantity 30000
        }
       }
      }
