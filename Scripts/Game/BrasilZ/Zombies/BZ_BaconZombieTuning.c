@@ -14,10 +14,13 @@
 // o zombie morrer.
 modded class Bacon_622120A5448725E3_InfectedCharacter
 {
-	// Vida alvo pós-init. Vanilla = 100. Lower = morre mais rápido.
+	// Vida alvo pós-init. Vanilla = 100. Lower = morre mais rápido com armas.
+	//
+	// IMPORTANTE: não reduzir Blood ou Resilience aqui. As vanilla DamageStateThresholds
+	// definem que abaixo de ~33% Blood/Resilience o char vai pra estado WOUNDED/INCAP.
+	// Zumbi com Blood 2000/6000 ou Resilience 30/100 nasce já em "critical" e cai morto
+	// no init. Só Health é seguro reduzir — não tem regen e cap em 0 mata.
 	protected static const float BZ_ZOMBIE_HEALTH_TARGET = 30.0;
-	protected static const float BZ_ZOMBIE_BLOOD_TARGET = 2000.0;
-	protected static const float BZ_ZOMBIE_RESILIENCE_TARGET = 30.0;
 
 	//------------------------------------------------------------------------------------------------
 	override void EOnInit(IEntity owner)
@@ -31,20 +34,12 @@ modded class Bacon_622120A5448725E3_InfectedCharacter
 		if (!dmg)
 			return;
 
-		// Lower health/blood/resilience absolute values. Vanilla zone caps em 100/6000/100.
-		// SetHealth aceita valor absoluto. Zombie dies normalmente ao chegar em 0.
+		// Só Health. Blood + Resilience ficam no max (6000/100) pra evitar damage state
+		// crítico que mata o zombie na hora do spawn.
 		HitZone healthZone = dmg.GetHitZoneByName("Health");
 		if (healthZone)
 			healthZone.SetHealth(BZ_ZOMBIE_HEALTH_TARGET);
 
-		HitZone bloodZone = dmg.GetHitZoneByName("Blood");
-		if (bloodZone)
-			bloodZone.SetHealth(BZ_ZOMBIE_BLOOD_TARGET);
-
-		HitZone resilienceZone = dmg.GetHitZoneByName("Resilience");
-		if (resilienceZone)
-			resilienceZone.SetHealth(BZ_ZOMBIE_RESILIENCE_TARGET);
-
-		Print(string.Format("[BrasilZ][Zombie] HP tuned to %1 (blood %2, resilience %3)", BZ_ZOMBIE_HEALTH_TARGET, BZ_ZOMBIE_BLOOD_TARGET, BZ_ZOMBIE_RESILIENCE_TARGET), LogLevel.DEBUG);
+		Print(string.Format("[BrasilZ][Zombie] Health set to %1 (blood/resilience untouched)", BZ_ZOMBIE_HEALTH_TARGET), LogLevel.DEBUG);
 	}
 }
