@@ -1,6 +1,61 @@
-GenericEntity : "{01AF412EA2C2F7E8}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Huge.et" {
- coords 1907.69 12.764 2243.108
+$grp GenericEntity : "{01AF412EA2C2F7E8}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Huge.et" {
+ {
+  coords 1907.69 12.764 2243.108
+ }
+ {
+  coords 6710.812 17.04 2779.797
+ }
+ {
+  coords 10523.445 10.545 2152.993
+ }
+ {
+  coords 12545.6 10.647 9591.6
+ }
+ {
+  coords 11774.878 45.701 14375.172
+ }
+ {
+  coords 7770.973 128.29 12772.222
+ }
+ {
+  coords 3628.97 10 12782.8
+ }
+ {
+  coords 6590.617 5.75 2382.31
+ }
+ {
+  coords 11541.403 67.825 14813.075
+ }
+ {
+  coords 8125.631 128.314 12692.287
+ }
+ {
+  coords 10118.073 5.751 1917.978
+ }
 }
 GenericEntity : "{A6340D063CD1630A}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Large.et" {
- coords 1832.285 9.666 2278.792
+ coords 1732.095 14.9 2203.051
+}
+$grp GenericEntity : "{DF5EE816FBAE02A7}622120A5448725E3/Prefabs/Systems/AmbientPatrolSpawnpoint_CIV_Medium.et" {
+ {
+  coords 2591.429 189.592 5153.521
+ }
+ {
+  coords 3061.445 297.888 7926.147
+ }
+ {
+  coords 6066.586 297.887 7763.148
+ }
+ {
+  coords 3817.902 305.479 8850.973
+ }
+ {
+  coords 5356.965 329.413 8577.646
+ }
+ {
+  coords 13365.688 6.977 6245.125
+ }
+ {
+  coords 10942.954 58.973 14387.525
+ }
 }
