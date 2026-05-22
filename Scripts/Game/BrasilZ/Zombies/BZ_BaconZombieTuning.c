@@ -17,9 +17,10 @@
 // este cap atua via behavior tree decorator + horde broadcast filter. DayZ-like: zombie
 // agro só quando player está perto. Tweak conforme gosto:
 //   10 = bem cego, só pega muito perto
+//   14 = menos agressivo, DayZ-like reduzido
 //   18 = default (DayZ-like)
 //   30 = vê mais longe, ainda menos que vanilla
-const float BZ_BACON_MAX_DETECT_RANGE = 18.0;
+const float BZ_BACON_MAX_DETECT_RANGE = 14.0;
 
 modded class Bacon_622120A5448725E3_InfectedCharacter
 {

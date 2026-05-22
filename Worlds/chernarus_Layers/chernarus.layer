@@ -73,6 +73,9 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
   SCR_AdditionalGameModeSettingsComponent "{6170E11C3C452ACC}" {
    m_eNametagRelationFilters SHOW_GROUP_MEMBERS
   }
+  SCR_RespawnTimerComponent "{B70500000000A001}" {
+   m_fRespawnTime 10
+  }
   SCR_DestructionManagerComponent "{258B34C52AD2128C}" {
   }
   SCR_HintManagerComponent "{59A268576D56E32A}" {

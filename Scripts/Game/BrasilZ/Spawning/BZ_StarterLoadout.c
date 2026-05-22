@@ -1,6 +1,11 @@
 class BZ_StarterLoadout
 {
-	static const string LOADOUT_VERSION = "brasilz-civil-starter-v14";
+	static const string LOADOUT_VERSION = "brasilz-civil-starter-v15";
+
+	// Guard against duplicate Apply calls. Spawn handler + character controller both schedule
+	// Apply on a callqueue, race condition lets the same item be inserted twice if the inventory
+	// index hasn't replicated the previous insert yet. Tracking by entity id ensures one-shot.
+	protected static ref set<int> s_AppliedEntities = new set<int>();
 
 	// Starter kit BrasilZ. Edite esta lista para mudar o loadout inicial.
 	static const ResourceName STARTER_MAP = "{983B57B8E95C1F52}Prefabs/Items/Equipment/Maps/Map_Paper_01/PaperMap_01_folded_FIA.et";
@@ -10,6 +15,7 @@ class BZ_StarterLoadout
 	static const ResourceName STARTER_WATER = "{2DA40953CC5C6D88}Prefabs/FoodDrink/WaterBottler.et";
 	static const ResourceName STARTER_WALLET = "{F539F8AD9A0D2249}Prefabs/Items/WalletFisicalValue.et";
 	static const ResourceName STARTER_BIKE = "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et";
+	static const ResourceName STARTER_BANDAGE = "{3BD9B80FAAF5E8B5}Prefabs/Items/Medicine/Gauze.et";
 
 	//------------------------------------------------------------------------------------------------
 	static void Apply(IEntity character)
@@ -21,6 +27,22 @@ class BZ_StarterLoadout
 		if (GetGame().InPlayMode() && rpl && !rpl.IsMaster())
 			return;
 
+		// Duplicate-Apply guard. Multiple call sites schedule Apply on a callqueue (spawn handler
+		// fires 3 calls at 250/1250/3000ms, character controller fires 3 more at 1000/3000/6000ms).
+		// Without this check, a race in HasItemInInventory (inventory index lag) lets the second
+		// pass insert the same item again. One-shot per entity instance fixes that.
+		int entityId;
+		if (rpl)
+			entityId = rpl.Id();
+		else
+			entityId = character.GetID();
+
+		if (s_AppliedEntities.Contains(entityId))
+		{
+			Print(string.Format("[BrasilZ] Starter loadout already applied for entity %1, skipping.", entityId));
+			return;
+		}
+
 		InventoryStorageManagerComponent storageManager = InventoryStorageManagerComponent.Cast(character.FindComponent(InventoryStorageManagerComponent));
 		if (!storageManager)
 			return;
@@ -28,6 +50,7 @@ class BZ_StarterLoadout
 		if (HasProgressInventory(character))
 		{
 			Print("[BrasilZ] Starter loadout skipped; character already has persisted progress.");
+			s_AppliedEntities.Insert(entityId);
 			return;
 		}
 
@@ -40,7 +63,10 @@ class BZ_StarterLoadout
 		TryAddItem(character, storageManager, STARTER_WATER);
 		TryAddItem(character, storageManager, STARTER_WALLET);
 		TryAddItem(character, storageManager, STARTER_BIKE);
-		Print(string.Format("[BrasilZ] Custom starter loadout applied. Version=%1", LOADOUT_VERSION));
+		TryAddItem(character, storageManager, STARTER_BANDAGE);
+
+		s_AppliedEntities.Insert(entityId);
+		Print(string.Format("[BrasilZ] Custom starter loadout applied. Version=%1 entity=%2", LOADOUT_VERSION, entityId));
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -416,6 +442,9 @@ class BZ_StarterLoadout
 		if (IsEntityMatchingStarterPrefab(item, STARTER_BIKE))
 			return true;
 
+		if (IsEntityMatchingStarterPrefab(item, STARTER_BANDAGE))
+			return true;
+
 		return false;
 	}
 
@@ -449,6 +478,9 @@ class BZ_StarterLoadout
 			return true;
 
 		if ((starterName.Contains("DeployableBike_01.et") || starterName.Contains("BrasilZ_DeployableBike_01.et")) && (prefabName.Contains("DeployableBike_01.et") || prefabName.Contains("BrasilZ_DeployableBike_01.et")))
+			return true;
+
+		if (starterName.Contains("Medicine/Gauze.et") && prefabName.Contains("Medicine/Gauze.et"))
 			return true;
 
 		return false;

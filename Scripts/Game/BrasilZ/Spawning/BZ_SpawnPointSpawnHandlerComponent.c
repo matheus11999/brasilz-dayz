@@ -145,17 +145,9 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 1250, false, spawnedEntity);
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 3000, false, spawnedEntity);
 
-		// Force-leave any group on spawn so player must opt-in via group menu.
-		if (playerId > 0)
-			GetGame().GetCallqueue().CallLater(RemovePlayerFromGroupsOnSpawn, 500, false, playerId);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	protected void RemovePlayerFromGroupsOnSpawn(int playerId)
-	{
-		BZ_GroupsManagerComponent mgr = BZ_GroupsManagerComponent.Cast(SCR_GroupsManagerComponent.GetInstance());
-		if (mgr)
-			mgr.RemovePlayerFromAllGroups(playerId);
+		// No-op for groups: BZ_GroupsManagerComponent.OnPlayerRegistered + OnPlayerAuditSuccess
+		// already skip vanilla auto-assign. Player joins no group on spawn, but can opt in via
+		// the post-spawn group menu (M key) to create or join one.
 	}
 
 	//------------------------------------------------------------------------------------------------

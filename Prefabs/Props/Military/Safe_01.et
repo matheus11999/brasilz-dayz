@@ -1,3 +1,28 @@
 GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Props_Base.et" {
  ID "F0DBA538AC2A0552"
+ components {
+  FM_CatalogLootSpawnerComponent "{68ED33C888593434}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68ED33C88F71B572}" {
+     m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
+     m_eAllowedTypes 201606
+     m_fSpawnChance 1
+     m_bTier1 0
+     m_bTier2 1
+     m_bTier3 1
+    }
+   }
+   m_fLootLifetime 2940
+  }
+  ActionsManagerComponent "{66D53233845C1CC9}" {
+   additionalActions {
+    FM_CatalogLootAction "{66D53233B8D611C4}" {
+     "Inventory action" 1
+     m_bRequireItem 1
+     m_RequiredItemPrefab "{86ED0634DE65D71C}Prefabs/Props/Keys/PurpleKey.et"
+     m_sErrorMessage "CHAVE PURPPLE / ROXA"
+    }
+   }
+  }
+ }
 }
