@@ -1,3 +1,12 @@
 GenericEntity : "{5D12784AFD6B64B2}Prefabs/Props/LootLocker/CabinetMetal_02_Base.et" {
  ID "F0DBA538AC2A0552"
+ components {
+  ActionsManagerComponent "{66B2BB7E4FDE90E3}" {
+   additionalActions {
+    FM_CatalogLootAction "{68ED33C56F0FA051}" {
+     Duration 5.5
+    }
+   }
+  }
+ }
 }

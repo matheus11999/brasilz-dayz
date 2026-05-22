@@ -5,7 +5,7 @@ GenericEntity : "{10C26F96EF7A8CF5}Prefabs/Props/Core/Props_Base.et" {
    m_aLootSlots {
     FM_CatalogLootSlot "{68EC40E5B1FA84D8}" {
      m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
-     m_fSpawnChance 0.35
+     m_fSpawnChance 0.4
      m_bTier1 1
     }
    }

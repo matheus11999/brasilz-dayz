@@ -795,6 +795,50 @@ $grp GenericEntity : "{403E2B0BE16D6CC9}Prefabs/ItemShop_Base.et" {
        }
       }
      }
+     ADM_ShopMerchandise "{B750000000003001}" {
+      m_Merchandise ADM_MerchandiseVehicle "{B750000000003002}" {
+       m_iMaxPurchaseQuantity 1
+       m_iMaxSellQuantity 1
+       m_sPrefab "{F22B338BFAC1FD68}Prefabs/Vehicles/Wheeled/Motorbike/motorbike.et"
+       m_SpawnPosition PointInfo "{B750000000003003}" {
+        Offset -3.458 0.763 18.253
+        Angles 0 147.453 0
+       }
+       m_bIgnorePlayer 1
+      }
+      m_BuyPayment {
+       ADM_PaymentMethodCurrency "{B750000000003004}" {
+        m_Quantity 14000
+       }
+      }
+      m_SellPayment {
+       ADM_PaymentMethodCurrency "{B750000000003005}" {
+        m_Quantity 2800
+       }
+      }
+     }
+     ADM_ShopMerchandise "{B750000000004001}" {
+      m_Merchandise ADM_MerchandiseVehicle "{B750000000004002}" {
+       m_iMaxPurchaseQuantity 1
+       m_iMaxSellQuantity 1
+       m_sPrefab "{E6E5E1E5DC66DD8C}Prefabs/Vehicles/Wheeled/Motorbike/motorbike_green.et"
+       m_SpawnPosition PointInfo "{B750000000004003}" {
+        Offset -3.458 0.763 18.253
+        Angles 0 147.453 0
+       }
+       m_bIgnorePlayer 1
+      }
+      m_BuyPayment {
+       ADM_PaymentMethodCurrency "{B750000000004004}" {
+        m_Quantity 14000
+       }
+      }
+      m_SellPayment {
+       ADM_PaymentMethodCurrency "{B750000000004005}" {
+        m_Quantity 2800
+       }
+      }
+     }
     }
    }
   }

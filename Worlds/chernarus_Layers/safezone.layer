@@ -33,8 +33,13 @@ ZEL_SafeZoneEntity BrasilZ_SafeZone_TraderHub {
  components {
   RplComponent "{B70100000000D011}" {
   }
+  BZ_SafezoneWeaponGuardComponent "{B70100000000D013}" {
+   m_fRadius 260
+   m_iCheckIntervalMs 100
+   m_bDebug 1
+  }
  }
- coords 5403.675 299.438 5634.716
+ coords 5403.721 299.52 5634.185
  TriggerShapeType Sphere
  SphereRadius 260
  BoxMaxs 10 10 10
@@ -182,6 +187,9 @@ $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastr
  {
   coords 5405.141 0 5642.646
  }
+}
+GenericEntity bicadagua : "{623915FB79E1EF33}PrefabsEditable/Auto/Structures/Infrastructure/Waterworks/WellPump_01/E_WellPump_01_red.et" {
+ coords 5407.757 299.438 5640.17
 }
 SCR_DestructibleBuildingEntity BrasilZ_TraderHub_Garage : "{9D656741EA2AABC5}Prefabs/Structures/Industrial/Garages/Garage_E_02/Garage_E_02_base.et" {
  coords 5369.804 0.031 5660.491

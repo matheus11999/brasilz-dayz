@@ -5,7 +5,7 @@ GenericEntity : "{4CC2C69DE1AEF103}Prefabs/Props/Core/DestructibleMultiPhase_Pro
    m_aLootSlots {
     FM_CatalogLootSlot "{68EC40E4195364BD}" {
      m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
-     m_fSpawnChance 0.4
+     m_fSpawnChance 0.5
      m_bTier1 1
      m_bTier3 1
      m_bTier4 1

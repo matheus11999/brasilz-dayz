@@ -4,9 +4,10 @@ GenericEntity : "{10C26F96EF7A8CF5}Prefabs/Props/Core/Props_Base.et" {
   FM_CatalogLootSpawnerComponent "{68EC0AD983D106A9}" {
    m_aLootSlots {
     FM_CatalogLootSlot "{68EC0AD981553DF6}" {
-     m_sCatalogResource "{B706000000002000}Configs/CaixasDeMadeira.conf"
+     m_sCatalogResource "{0CF24FAADF8B64DC}Configs/EntityCatalog/FMCatalog/CatalogoMilitar.conf"
      m_iMinItems 0
-     m_iMaxItems 1
+     m_iMaxItems 2
+     m_fSpawnChance 0.5
     }
    }
    m_fLootLifetime 2280

@@ -1,0 +1,16 @@
+Bike : "{1F9BB80C3EC3C891}Prefabs/Vehicles/Core/Wheeled_Car_Base.et" {
+ ID "BBCBA43A9778AE21"
+ components {
+  ActionsManagerComponent "{C97BE5489221AE18}" {
+   ActionContexts {
+    UserActionContext "{6613679E35473D9C}" {
+     Position PointInfo "{6613679E41A6AEE8}" {
+      Offset 0.0225 0.2467 0.7671
+     }
+    }
+   }
+  }
+ }
+ coords 0 0 0
+ angles 0 79.438 0
+}

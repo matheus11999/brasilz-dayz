@@ -1,0 +1,11 @@
+GenericEntity : "{1FEA777E6B9BD50E}Prefabs/Structures/Infrastructure/Waterworks/WellPump_01/WellPump_01_red.et" {
+ ID "5272E317A914F6DB"
+ components {
+  RigidBody "{5111E74C06F5C1E1}" {
+   ResponseIndex "Static"
+  }
+  SCR_DestructionMultiPhaseComponent "{58F896B4CD371A8B}" {
+   Enabled 0
+  }
+ }
+}
