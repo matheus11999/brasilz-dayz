@@ -50,6 +50,44 @@ void BZ_DiscordHooks_SendConnectEvent(int playerId, string name, int onlineCount
 	fields.Insert(new BZ_DiscordField("Players online", onlineCount.ToString()));
 	BZ_DiscordWebhook.AddBalanceFields(playerEntity, fields);
 
+	// Metabolism + bleeding state on reconnect — useful to detect:
+	//   (a) anti-cheese: did stats drop offline? (shouldn't, per FMMetabolism2 design)
+	//   (b) at-risk reconnect: player came back almost empty, will die in minutes
+	//   (c) cross-restart persistence integrity
+	//   (d) bleeding alert: player came back actively bleeding, needs bandage NOW
+	if (playerEntity)
+	{
+		SCR_CharacterControllerComponent ctrl = SCR_CharacterControllerComponent.Cast(playerEntity.FindComponent(SCR_CharacterControllerComponent));
+		float rcHyd = -1, rcEng = -1;
+		if (ctrl)
+		{
+			rcHyd = ctrl.GetHydration();
+			rcEng = ctrl.GetEnergy();
+		}
+
+		bool rcBleeding = false;
+		SCR_CharacterDamageManagerComponent rcDmg = SCR_CharacterDamageManagerComponent.Cast(SCR_DamageManagerComponent.GetDamageManager(playerEntity));
+		if (rcDmg)
+			rcBleeding = rcDmg.IsBleeding();
+
+		string status = "OK";
+		if (rcHyd <= 0.02 || rcEng <= 0.02)
+			status = "💀 AT_RISK (vai morrer em minutos)";
+		else if (rcHyd < 0.25 || rcEng < 0.25)
+			status = "⚠️ LOW";
+
+		if (ctrl)
+		{
+			fields.Insert(new BZ_DiscordField("💧 Hidratação", string.Format("%1%% (%2)", Math.Round(rcHyd * 100), status)));
+			fields.Insert(new BZ_DiscordField("🍖 Energia", string.Format("%1%%", Math.Round(rcEng * 100))));
+		}
+
+		if (rcBleeding)
+			fields.Insert(new BZ_DiscordField("🩸 Sangrando", "SIM — precisa bandagem agora"));
+
+		Print(string.Format("[BrasilZ][Metabolism] Player %1 reconnect snapshot: hydration=%2 energy=%3 bleeding=%4 status=%5", playerId, rcHyd, rcEng, rcBleeding, status), LogLevel.NORMAL);
+	}
+
 	BZ_DiscordWebhook.Send(
 		"👋 Player conectou",
 		"**" + name + "** entrou no servidor",
@@ -211,6 +249,32 @@ modded class SCR_BaseGameMode
 
 				IEntity playerEntity = pm.GetPlayerControlledEntity(playerId);
 				BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, walletTotal, looseTotal, grandTotal);
+
+				// Snapshot metabolism + bleeding state on disconnect. FMMetabolism2 freezes
+				// decay on disconnect (callqueue Remove), bleeding effect persists but damage
+				// handling is disabled by BZ_SinkCharacterOnDisconnect. Log so reconnect can
+				// be cross-referenced.
+				if (playerEntity)
+				{
+					SCR_CharacterControllerComponent ctrl = SCR_CharacterControllerComponent.Cast(playerEntity.FindComponent(SCR_CharacterControllerComponent));
+					float dcHyd = -1, dcEng = -1;
+					if (ctrl)
+					{
+						dcHyd = ctrl.GetHydration();
+						dcEng = ctrl.GetEnergy();
+					}
+
+					bool dcBleeding = false;
+					SCR_CharacterDamageManagerComponent dcDmg = SCR_CharacterDamageManagerComponent.Cast(SCR_DamageManagerComponent.GetDamageManager(playerEntity));
+					if (dcDmg)
+						dcBleeding = dcDmg.IsBleeding();
+
+					string warn = "";
+					if (dcHyd >= 0 && dcHyd < 0.25) warn = warn + " THIRSTY";
+					if (dcEng >= 0 && dcEng < 0.25) warn = warn + " HUNGRY";
+					if (dcBleeding) warn = warn + " BLEEDING(damage_off_while_offline)";
+					Print(string.Format("[BrasilZ][Metabolism] Player %1 disconnect snapshot: hydration=%2 energy=%3 bleeding=%4%5", playerId, dcHyd, dcEng, dcBleeding, warn), LogLevel.NORMAL);
+				}
 			}
 		}
 
@@ -235,6 +299,57 @@ modded class SCR_BaseGameMode
 	//------------------------------------------------------------------------------------------------
 	override void OnPlayerKilled(int playerId, IEntity playerEntity, IEntity killerEntity, notnull Instigator killer)
 	{
+		// CAPTURE BALANCE FIRST — before super.OnPlayerKilled runs BZ_GameMode.OnPlayerKilled
+		// which calls BZ_DecoupleDeadBody. Decouple changes persistence ownership and vanilla
+		// death also drops slotted items (backpack with wallet inside). After super, the
+		// wallet is no longer reachable via the character's inventory hierarchy, so we'd
+		// log $0/$0/$0. Snapshot the balance synchronously at the start of the kill event.
+		int preVictimWallet = 0;
+		int preVictimLoose = 0;
+		int preVictimTotal = 0;
+		if (playerEntity)
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, preVictimWallet, preVictimLoose, preVictimTotal);
+
+		// CAPTURE METABOLISM state pre-death. FMMetabolism2 applies fatal damage via
+		// SetHealthScaled(0) without Instigator — vanilla OnPlayerKilled then fires with
+		// killerEntity=null, so we'd just log "Ambiente". Read hydration/energy at the
+		// moment of death so we can differentiate "death by thirst" vs "death by starvation"
+		// vs other environmental causes (fall, drown).
+		float preHydration = -1;
+		float preEnergy = -1;
+		bool preBleeding = false;
+		if (playerEntity)
+		{
+			SCR_CharacterControllerComponent ctrl = SCR_CharacterControllerComponent.Cast(playerEntity.FindComponent(SCR_CharacterControllerComponent));
+			if (ctrl)
+			{
+				preHydration = ctrl.GetHydration();
+				preEnergy = ctrl.GetEnergy();
+			}
+
+			// Bleeding state via vanilla damage manager. Vanilla bleeding deals damage via
+			// persistent SCR_BleedingDamageEffect — if HP drops to 0 from bleeding the kill
+			// fires with killerEntity = original shooter (PvP/PvE) OR null if shooter
+			// despawned. Captures so we know death cause when killer was de-referenced.
+			SCR_CharacterDamageManagerComponent dmgMgr = SCR_CharacterDamageManagerComponent.Cast(SCR_DamageManagerComponent.GetDamageManager(playerEntity));
+			if (dmgMgr)
+				preBleeding = dmgMgr.IsBleeding();
+
+			Print(string.Format("[BrasilZ][Killed] Player %1 health snapshot: hydration=%2 energy=%3 bleeding=%4", playerId, preHydration, preEnergy, preBleeding), LogLevel.NORMAL);
+		}
+
+		// Also snapshot KILLER balance pre-loot. If PvP, killer may walk over and pick up
+		// victim's wallet/notes within seconds — but at the EXACT moment of kill we want to
+		// show what the killer was carrying BEFORE looting. Resolve killer entity first.
+		int preKillerWallet = 0;
+		int preKillerLoose = 0;
+		int preKillerTotal = 0;
+		IEntity preKillerEnt = null;
+		if (killer)
+			preKillerEnt = killer.GetInstigatorEntity();
+		if (preKillerEnt && preKillerEnt != playerEntity)
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(preKillerEnt, preKillerWallet, preKillerLoose, preKillerTotal);
+
 		super.OnPlayerKilled(playerId, playerEntity, killerEntity, killer);
 
 		if (!Replication.IsServer() || !BZ_DiscordConfig.LOG_KILL)
@@ -266,8 +381,44 @@ modded class SCR_BaseGameMode
 			}
 			else
 			{
-				killerName = "NPC / Zombie";
+				// AI killer — classify by prefab path. Better than generic "NPC / Zombie"
+				// because admin can grep Discord logs to track which AI type kills players most.
+				string killerPrefab = "(no-prefab)";
+				if (killerEnt.GetPrefabData())
+					killerPrefab = killerEnt.GetPrefabData().GetPrefabName();
+
+				if (killerPrefab.IndexOf("Zombie") >= 0 || killerPrefab.IndexOf("Infected") >= 0 || killerPrefab.IndexOf("BaconZ") >= 0)
+					killerName = "🧟 Zombie";
+				else if (killerPrefab.IndexOf("PLASTICBANDIT") >= 0 || killerPrefab.IndexOf("Bandit") >= 0)
+					killerName = "🔫 Bandido (NPC)";
+				else if (killerPrefab.IndexOf("Demon") >= 0 || killerPrefab.IndexOf("Boss") >= 0)
+					killerName = "👹 Demônio/Boss";
+				else if (killerPrefab.IndexOf("Animal") >= 0 || killerPrefab.IndexOf("Wolf") >= 0 || killerPrefab.IndexOf("Bear") >= 0)
+					killerName = "🐺 Animal Selvagem";
+				else
+					killerName = string.Format("NPC (%1)", killerPrefab);
 			}
+		}
+		else
+		{
+			// No killer entity — could be FMMetabolism2 (SetHealthScaled bypasses Instigator),
+			// fall damage, drowning, bleeding (if shooter despawned), or other environmental.
+			// Use snapshot to differentiate. FMMetabolism applies fatal damage when stat
+			// <= 0.02 (EmptyThreshold). Bleeding adds 🩸 marker.
+			const float METAB_EMPTY = 0.02;
+			bool starved = (preEnergy >= 0 && preEnergy <= METAB_EMPTY);
+			bool dehydrated = (preHydration >= 0 && preHydration <= METAB_EMPTY);
+
+			if (starved && dehydrated)
+				killerName = "💀 Fome + Sede";
+			else if (starved)
+				killerName = "🍖 Fome (Starvation)";
+			else if (dehydrated)
+				killerName = "💧 Sede (Desidratação)";
+			else if (preBleeding)
+				killerName = "🩸 Sangramento (sem socorro)";
+			else
+				killerName = "Ambiente (queda/afogamento/desconhecido)";
 		}
 
 		bool isSuicide = (killerPlayerId > 0 && killerPlayerId == playerId);
@@ -299,7 +450,32 @@ modded class SCR_BaseGameMode
 		ref array<ref BZ_DiscordField> fields = new array<ref BZ_DiscordField>();
 		fields.Insert(new BZ_DiscordField("Vítima", victimName));
 		fields.Insert(new BZ_DiscordField("Killer", killerName));
-		BZ_DiscordWebhook.AddBalanceFields(playerEntity, fields);
+
+		// Victim balance (PRE-death snapshot — captured before super decoupled body)
+		if (isPvP)
+			fields.Insert(new BZ_DiscordField("💰 Saldo Vítima — Carteira", "$" + preVictimWallet.ToString()));
+		else
+			fields.Insert(new BZ_DiscordField("Valor Na Carteira", "$" + preVictimWallet.ToString()));
+
+		if (isPvP)
+			fields.Insert(new BZ_DiscordField("💰 Saldo Vítima — Solto", "$" + preVictimLoose.ToString()));
+		else
+			fields.Insert(new BZ_DiscordField("Valor Fora da Carteira", "$" + preVictimLoose.ToString()));
+
+		if (isPvP)
+			fields.Insert(new BZ_DiscordField("💰 Saldo Vítima — Total", "$" + preVictimTotal.ToString()));
+		else
+			fields.Insert(new BZ_DiscordField("Total", "$" + preVictimTotal.ToString()));
+
+		// Killer balance (PRE-loot snapshot — what killer carried at moment of kill,
+		// before walking over to loot victim). Only show on PvP — no point on suicide
+		// (same player) or NPC kills (no wallet on zombies).
+		if (isPvP)
+		{
+			fields.Insert(new BZ_DiscordField("🔫 Saldo Killer — Carteira", "$" + preKillerWallet.ToString()));
+			fields.Insert(new BZ_DiscordField("🔫 Saldo Killer — Solto", "$" + preKillerLoose.ToString()));
+			fields.Insert(new BZ_DiscordField("🔫 Saldo Killer — Total", "$" + preKillerTotal.ToString()));
+		}
 
 		BZ_DiscordWebhook.Send(title, desc, color, fields);
 	}

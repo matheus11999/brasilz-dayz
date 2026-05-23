@@ -107,6 +107,30 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		BaseGameEntity player = BaseGameEntity.Cast(result);
 		BaseGameEntity loadedEntity = player;
 		bool rejectedAsDead = false;
+		string rejectReason = "";  // tracks WHY player ended up in deploy menu, for diagnostic logging
+
+		// Initial state dump for diagnostics. Logs EXACTLY what persistence returned for this
+		// player so we can distinguish "no save exists" (player == null) from "save exists but
+		// rejected by validation" (player != null but later set to null).
+		string entityDesc = "null";
+		if (player)
+		{
+			vector loadedPos = player.GetOrigin();
+			SCR_DamageManagerComponent loadedDmg = SCR_DamageManagerComponent.GetDamageManager(player);
+			float loadedHP = -1;
+			bool loadedDestroyed = false;
+			if (loadedDmg)
+			{
+				loadedHP = loadedDmg.GetHealth();
+				loadedDestroyed = loadedDmg.IsDestroyed();
+			}
+			ECharacterLifeState loadedLifeState = ECharacterLifeState.ALIVE;
+			CharacterControllerComponent loadedCC = CharacterControllerComponent.Cast(player.FindComponent(CharacterControllerComponent));
+			if (loadedCC)
+				loadedLifeState = loadedCC.GetLifeState();
+			entityDesc = string.Format("pos=%1, HP=%2, destroyed=%3, lifeState=%4", loadedPos, loadedHP, loadedDestroyed, typename.EnumToString(ECharacterLifeState, loadedLifeState));
+		}
+		Print(string.Format("[BrasilZ][SpawnLoad] Player %1 OnPlayerCharacterLoaded_S: statusCode=%2, entity=%3", playerId, statusCode, entityDesc), LogLevel.NORMAL);
 
 		// Death flag persisted in $profile:BrasilZ/Deaths — survives server restart.
 		//
@@ -129,13 +153,21 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 
 					if (charAlive)
 					{
-						Print(string.Format("[BrasilZ] Player %1 (UID %2) has stale death flag — character is alive (health=%3). Clearing flag and restoring.", playerId, uid, flagDmg.GetHealth()), LogLevel.WARNING);
+						Print(string.Format("[BrasilZ][SpawnLoad] Player %1 (UID %2) STALE death flag — char alive HP=%3. Auto-clearing flag, accepting char.", playerId, uid, flagDmg.GetHealth()), LogLevel.WARNING);
 						registry.ClearDead(uid);
 						registry.ClearDeadBody(playerId);
 					}
 					else
 					{
-						Print(string.Format("[BrasilZ] Player %1 (UID %2) has persisted death flag and character is dead — rejecting character", playerId, uid), LogLevel.NORMAL);
+						float rejHP = -1;
+						bool rejDestroyed = false;
+						if (flagDmg)
+						{
+							rejHP = flagDmg.GetHealth();
+							rejDestroyed = flagDmg.IsDestroyed();
+						}
+						rejectReason = string.Format("DEATH_FLAG_PERSISTED+CHAR_CONFIRMED_DEAD (UID=%1, HP=%2, destroyed=%3)", uid, rejHP, rejDestroyed);
+						Print(string.Format("[BrasilZ][SpawnLoad] Player %1 REJECT reason=%2", playerId, rejectReason), LogLevel.NORMAL);
 						player = null;
 						rejectedAsDead = true;
 					}
@@ -167,7 +199,8 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 
 			if (healthDead)
 			{
-				Print(string.Format("[BrasilZ] Player %1 character has health<=0 (lifeState=%2) — rejecting", playerId, typename.EnumToString(ECharacterLifeState, lifeState)), LogLevel.NORMAL);
+				rejectReason = string.Format("CHAR_HEALTH_ZERO (HP=%1, destroyed=%2, lifeState=%3)", health, destroyed, typename.EnumToString(ECharacterLifeState, lifeState));
+				Print(string.Format("[BrasilZ][SpawnLoad] Player %1 REJECT reason=%2", playerId, rejectReason), LogLevel.NORMAL);
 				player = null;
 				rejectedAsDead = true;
 			}
@@ -179,11 +212,21 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		{
 			if (rejectedAsDead && loadedEntity)
 			{
-				Print(string.Format("[BrasilZ] Deleting stale persisted entity for dead player %1", playerId), LogLevel.WARNING);
+				Print(string.Format("[BrasilZ][SpawnLoad] Deleting stale persisted entity for dead player %1", playerId), LogLevel.WARNING);
 				RplComponent.DeleteRplEntity(loadedEntity, false);
 			}
 
-			Print(string.Format("[BrasilZ] Player %1 has no progress → vanilla opens deploy menu (delay=%2s)", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
+			// SUMMARY log: explicit reason why player ends up in deploy menu. Critical for
+			// debugging "player had progress but went to spawn menu" complaints.
+			string finalReason = rejectReason;
+			if (finalReason.IsEmpty())
+			{
+				if (loadedEntity)
+					finalReason = "PERSISTENCE_RETURNED_ENTITY_BUT_REJECTED_UNKNOWN";
+				else
+					finalReason = "NO_SAVE_DATA (first connection OR save missing)";
+			}
+			Print(string.Format("[BrasilZ][DeployMenuReason] Player %1 → menu | reason=%2 | delay=%3s", playerId, finalReason, m_fDeployMenuOpenDelay), LogLevel.WARNING);
 			// Forward with null result; vanilla branches on (result == null) to open the menu.
 			// Keep original statusCode — EPersistenceStatusCode enum has only OK in this SDK.
 			super.OnPlayerCharacterLoaded_S(statusCode, null, isLast, context);
@@ -240,12 +283,55 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 
 				Print(string.Format("[BrasilZ] Player %1 submerged at %2 → damage disabled, surface lift to %3 deferred 250ms", playerId, pos, surfacePos), LogLevel.NORMAL);
 			}
+			else
+			{
+				// HORIZONTAL RESCUE: saved pos may be inside geometry (rock, wall, vehicle
+				// spawned after disconnect, base-built structure). Vanilla SetOrigin would
+				// place char inside the obstacle → engine destroys entity → "entity lost".
+				//
+				// Pattern from ReforgedZ_SpawnPoint.GetPosYPR + RZ_BaseMission.FindSafeSpawnPosition:
+				// query nearest empty terrain in 5m radius; if found > 0.5m from saved pos,
+				// shift before super possess. Y stays the same (or recalc from surface).
+				vector safePos = pos;
+				if (SCR_WorldTools.FindEmptyTerrainPosition(safePos, pos, 5.0))
+				{
+					float horizontalShift = vector.Distance(safePos, pos);
+					if (horizontalShift > 0.5)
+					{
+						// Recompute Y from terrain surface so player doesn't fall through floor
+						// or float in air after horizontal shift.
+						BaseWorld bw = GetGame().GetWorld();
+						if (bw)
+							safePos[1] = bw.GetSurfaceY(safePos[0], safePos[2]);
+
+						player.SetOrigin(safePos);
+						Print(string.Format("[BrasilZ][SpawnRescue] Player %1 saved pos %2 blocked, moved %3m to %4", playerId, pos, horizontalShift, safePos), LogLevel.WARNING);
+					}
+				}
+			}
 		}
 
 		// Has progress → forward original args to vanilla, which possesses the saved character
 		// at its last position. Do NOT call RequestSpawn manually — vanilla does it correctly.
 		Print(string.Format("[BrasilZ] Player %1 has progress at %2 → vanilla restores last position", playerId, player.GetOrigin()), LogLevel.NORMAL);
 		super.OnPlayerCharacterLoaded_S(statusCode, result, isLast, context);
+
+		// SPAWN PROTECTION for reconnect-with-progress.
+		// super.OnPlayerCharacterLoaded_S triggers async PossessSpawnData → the character is
+		// not fully bound to the PlayerController in the same frame. Defer 500ms so the bind
+		// completes before we toggle damage handling.
+		GetGame().GetCallqueue().CallLater(BZ_ApplySpawnProtectionAfterPossess, 500, false, player, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Deferred spawn protection apply. Called 500ms after super.OnPlayerCharacterLoaded_S
+	// to give vanilla possess time to complete. Identical effect to direct apply but
+	// avoids race with PlayerController bind.
+	protected void BZ_ApplySpawnProtectionAfterPossess(IEntity character, int playerId)
+	{
+		if (!character || character.IsDeleted())
+			return;
+		BZ_SpawnProtection.Apply(character, playerId);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -254,7 +340,37 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	// (this already worked correctly before recent changes). Log only.
 	override void OnPlayerEntityLost_S(int playerId)
 	{
-		Print(string.Format("[BrasilZ] Player %1 entity lost → vanilla deploy menu opens in %2s", playerId, m_fDeployMenuOpenDelay), LogLevel.NORMAL);
+		// Capture state BEFORE entity is fully released. Critical for diagnostics: was player
+		// alive when entity was lost? Killed by zombie? Drowned? Crashed vehicle?
+		PlayerManager pm = GetGame().GetPlayerManager();
+		string lostContext = "no_player_manager";
+		if (pm)
+		{
+			IEntity lastEntity = pm.GetPlayerControlledEntity(playerId);
+			if (lastEntity)
+			{
+				vector lastPos = lastEntity.GetOrigin();
+				SCR_DamageManagerComponent lostDmg = SCR_DamageManagerComponent.GetDamageManager(lastEntity);
+				float lostHP = -1;
+				bool lostDestroyed = false;
+				if (lostDmg)
+				{
+					lostHP = lostDmg.GetHealth();
+					lostDestroyed = lostDmg.IsDestroyed();
+				}
+				ECharacterLifeState lostLifeState = ECharacterLifeState.ALIVE;
+				CharacterControllerComponent lostCC = CharacterControllerComponent.Cast(lastEntity.FindComponent(CharacterControllerComponent));
+				if (lostCC)
+					lostLifeState = lostCC.GetLifeState();
+				lostContext = string.Format("pos=%1, HP=%2, destroyed=%3, lifeState=%4", lastPos, lostHP, lostDestroyed, typename.EnumToString(ECharacterLifeState, lostLifeState));
+			}
+			else
+			{
+				lostContext = "controlled_entity_already_null (deleted between kill and entity-lost event)";
+			}
+		}
+		Print(string.Format("[BrasilZ][EntityLost] Player %1 lost entity | %2 | deploy menu in %3s", playerId, lostContext, m_fDeployMenuOpenDelay), LogLevel.WARNING);
+		Print(string.Format("[BrasilZ][DeployMenuReason] Player %1 → menu | reason=ENTITY_LOST_MID_GAME (killed/damaged/destroyed during play) | %2", playerId, lostContext), LogLevel.WARNING);
 		super.OnPlayerEntityLost_S(playerId);
 	}
 

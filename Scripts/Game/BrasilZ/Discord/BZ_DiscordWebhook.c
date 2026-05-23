@@ -136,48 +136,69 @@ class BZ_DiscordWebhook
 	}
 
 	// Sum value of loose money notes carried outside any wallet entity.
-	// Iterates recursively all inventory storages (including nested in
-	// backpack / vest). Notes inside a wallet are skipped because the wallet's
-	// own ADM_CurrencyComponent.GetValue() already covers them.
+	// Uses SCR_InventoryStorageManagerComponent.GetItems(...) which returns
+	// EVERY item the character carries — recursively walking into nested
+	// containers (backpack inside backpack, notes inside vest, etc). Notes
+	// stored INSIDE a wallet are skipped because that wallet's own
+	// ADM_CurrencyComponent.GetValue() already accounts for them.
 	protected static int SumLooseNotes(IEntity character)
 	{
 		int total = 0;
 		if (!character)
 			return total;
 
-		array<Managed> storages = {};
-		character.FindComponents(BaseInventoryStorageComponent, storages);
+		SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(character.FindComponent(SCR_InventoryStorageManagerComponent));
+		if (!inv)
+			return total;
 
-		foreach (Managed sRef : storages)
+		array<IEntity> allItems = {};
+		inv.GetItems(allItems);
+
+		foreach (IEntity item : allItems)
 		{
-			BaseInventoryStorageComponent storage = BaseInventoryStorageComponent.Cast(sRef);
-			if (!storage)
+			if (!item)
 				continue;
 
-			array<IEntity> items = {};
-			storage.GetAll(items);
+			ResourceName prefab;
+			auto data = item.GetPrefabData();
+			if (data)
+				prefab = data.GetPrefabName();
 
-			foreach (IEntity item : items)
-			{
-				if (!item)
-					continue;
+			// Quick filter: only consider note-shaped prefab paths.
+			int v = NoteDenomination(prefab);
+			if (v <= 0)
+				continue;
 
-				// Skip wallets — their contents are counted via ADM_CurrencyComponent.
-				if (item.FindComponent(ADM_CurrencyComponent))
-					continue;
+			// Skip notes that live inside a wallet entity — those are already
+			// counted via the wallet's ADM_CurrencyComponent.GetValue() in the
+			// other code path. Walk parent chain looking for a wallet.
+			if (IsInsideWallet(item))
+				continue;
 
-				ResourceName prefab;
-				auto data = item.GetPrefabData();
-				if (data)
-					prefab = data.GetPrefabName();
-
-				int v = NoteDenomination(prefab);
-				if (v > 0)
-					total += v;
-			}
+			total += v;
 		}
 
 		return total;
+	}
+
+	// Walk the entity parent chain looking for an ancestor that has an
+	// ADM_CurrencyComponent (= a wallet). Bounded so a corrupt hierarchy
+	// can't loop forever.
+	protected static bool IsInsideWallet(IEntity item)
+	{
+		if (!item)
+			return false;
+
+		IEntity p = item.GetParent();
+		int safety = 16;
+		while (p && safety > 0)
+		{
+			if (p.FindComponent(ADM_CurrencyComponent))
+				return true;
+			p = p.GetParent();
+			safety--;
+		}
+		return false;
 	}
 
 	// Compute wallet total, loose-note total, and grand total in one pass.

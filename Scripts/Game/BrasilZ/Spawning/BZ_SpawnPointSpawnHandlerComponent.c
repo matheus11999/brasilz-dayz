@@ -70,9 +70,21 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 	//------------------------------------------------------------------------------------------------
 	protected override SCR_ESpawnResult SpawnEntity_S(SCR_SpawnRequestComponent requestComponent, notnull SCR_SpawnData data, out IEntity spawnedEntity)
 	{
+		// Classify spawn source for diagnostic logging.
+		string spawnSource = "UNKNOWN";
+		if (BZ_SpawnPointSpawnData.Cast(data))
+			spawnSource = "BZ_SPAWN_POINT (deploy menu BrasilZ)";
+		else if (SCR_PossessSpawnData.Cast(data))
+			spawnSource = "RECONNECT (possess persisted character)";
+		else if (SCR_SpawnPointSpawnData.Cast(data))
+			spawnSource = "VANILLA_SPAWN_POINT (deploy menu vanilla flow)";
+		else
+			spawnSource = string.Format("OTHER (%1)", data.Type().ToString());
+
 		BZ_SpawnPointSpawnData spawnPointData = BZ_SpawnPointSpawnData.Cast(data);
 		if (!spawnPointData)
 		{
+			Print(string.Format("[BrasilZ][SpawnHandler] Vanilla path: source=%1", spawnSource), LogLevel.NORMAL);
 			SCR_ESpawnResult vanillaResult = super.SpawnEntity_S(requestComponent, data, spawnedEntity);
 
 			// CRITICAL: do NOT run PostProcessSpawnedPlayer for non-BZ spawn data.
@@ -92,6 +104,22 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity && !SCR_PossessSpawnData.Cast(data))
 				ClearDeathFlagForFreshSpawn(spawnedEntity);
 
+			// Spawn protection for vanilla flows too:
+			//   - VANILLA_SPAWN_POINT (deploy menu) → new char, needs 15s grace
+			//   - RECONNECT (possess) → player just loaded, might be bleeding/at-risk
+			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity)
+			{
+				PlayerManager pmProt = GetGame().GetPlayerManager();
+				int protPlayerId = 0;
+				if (pmProt)
+					protPlayerId = pmProt.GetPlayerIdFromControlledEntity(spawnedEntity);
+				BZ_SpawnProtection.Apply(spawnedEntity, protPlayerId);
+			}
+
+			// Log post-vanilla spawn state.
+			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity)
+				BZ_LogSpawnedEntityState(spawnedEntity, spawnSource, "vanilla branch");
+
 			return vanillaResult;
 		}
 
@@ -109,18 +137,95 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			return SCR_ESpawnResult.SPAWN_NOT_ALLOWED;
 		}
 
+		Print(string.Format("[BrasilZ][SpawnHandler] BZ path: source=%1 prefab=%2 explicit=%3 spawnPoint=%4", spawnSource, prefab, spawnPointData.HasExplicitTransform(), spawnPoint != null), LogLevel.NORMAL);
+
 		SCR_ESpawnResult result = super.SpawnEntity_S(requestComponent, data, spawnedEntity);
 		if (result != SCR_ESpawnResult.OK || !spawnedEntity)
+		{
+			Print(string.Format("[BrasilZ][SpawnHandler] FAIL result=%1 entity=%2", result, spawnedEntity != null), LogLevel.WARNING);
 			return result;
+		}
 
 		PostProcessSpawnedPlayer(spawnedEntity, spawnPointData.GetPlayerId());
 
+		// Detailed spawn state log: faction, group, prefab, pos. Critical for debugging
+		// "player spawned but with wrong faction/group" complaints.
+		BZ_LogSpawnedEntityState(spawnedEntity, spawnSource, "BZ branch");
+
 		if (spawnPointData.HasExplicitTransform())
-			Print(string.Format("[BrasilZ] Spawned saved player at %1", spawnPointData.GetPosition()), LogLevel.NORMAL);
+			Print(string.Format("[BrasilZ][SpawnHandler] Spawned saved player at %1", spawnPointData.GetPosition()), LogLevel.NORMAL);
 		else
-			Print(string.Format("[BrasilZ] Spawned player at %1", spawnPoint.GetOrigin()), LogLevel.NORMAL);
+			Print(string.Format("[BrasilZ][SpawnHandler] Spawned player at %1", spawnPoint.GetOrigin()), LogLevel.NORMAL);
 
 		return result;
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Dump faction, group, prefab, pos, HP, lifeState of just-spawned char. Logs at warning
+	// level so it stands out in script log. Call after super.SpawnEntity_S returns OK.
+	protected void BZ_LogSpawnedEntityState(IEntity spawnedEntity, string spawnSource, string branch)
+	{
+		if (!spawnedEntity)
+			return;
+
+		vector spawnPos = spawnedEntity.GetOrigin();
+
+		// Prefab
+		string prefabPath = "(no-prefab-data)";
+		if (spawnedEntity.GetPrefabData())
+			prefabPath = spawnedEntity.GetPrefabData().GetPrefabName();
+
+		// Faction
+		string factionKey = "(no-faction-comp)";
+		FactionAffiliationComponent facComp = FactionAffiliationComponent.Cast(spawnedEntity.FindComponent(FactionAffiliationComponent));
+		if (facComp)
+		{
+			Faction f = facComp.GetAffiliatedFaction();
+			if (f)
+				factionKey = f.GetFactionKey();
+			else
+				factionKey = "(null-faction)";
+		}
+
+		// Group via PlayerManager → SCR_GroupsManagerComponent
+		string groupInfo = "(unable_to_resolve)";
+		PlayerManager pm = GetGame().GetPlayerManager();
+		int playerId = 0;
+		if (pm)
+			playerId = pm.GetPlayerIdFromControlledEntity(spawnedEntity);
+		if (playerId > 0)
+		{
+			SCR_GroupsManagerComponent groupsMgr = SCR_GroupsManagerComponent.GetInstance();
+			if (groupsMgr)
+			{
+				SCR_AIGroup group = groupsMgr.GetPlayerGroup(playerId);
+				if (group)
+					groupInfo = string.Format("group_id=%1 size=%2", group.GetGroupID(), group.GetAgentsCount());
+				else
+					groupInfo = "NONE (correct — BZ_GroupsManagerComponent skips auto-assign)";
+			}
+			else
+			{
+				groupInfo = "no_groups_manager";
+			}
+		}
+		else
+		{
+			groupInfo = string.Format("playerId_resolution_failed (pm=%1)", pm != null);
+		}
+
+		// HP + lifeState
+		SCR_DamageManagerComponent dmgMgr = SCR_DamageManagerComponent.GetDamageManager(spawnedEntity);
+		float spawnHP = -1;
+		if (dmgMgr)
+			spawnHP = dmgMgr.GetHealth();
+		ECharacterLifeState spawnLifeState = ECharacterLifeState.ALIVE;
+		CharacterControllerComponent spawnCC = CharacterControllerComponent.Cast(spawnedEntity.FindComponent(CharacterControllerComponent));
+		if (spawnCC)
+			spawnLifeState = spawnCC.GetLifeState();
+
+		Print(string.Format("[BrasilZ][SpawnedState] Player %1 spawned | source=%2 | branch=%3 | prefab=%4 | pos=%5 | HP=%6 | lifeState=%7 | faction=%8 | %9",
+			playerId, spawnSource, branch, prefabPath, spawnPos, spawnHP, typename.EnumToString(ECharacterLifeState, spawnLifeState), factionKey, groupInfo), LogLevel.WARNING);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -140,6 +245,14 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 				}
 			}
 		}
+
+		// SPAWN PROTECTION — 15s damage immunity. Critical for new spawn:
+		//   * Char spawns in safezone or random spawn point, no exposure to threats
+		//   * BUT if BZ_StarterLoadout takes 3s to settle and zombies are nearby,
+		//     player can be hit during the loadout-apply window
+		//   * Bandits/other players camping spawn points cannot insta-kill
+		// Applied BEFORE starter loadout so damage is blocked during equipment setup.
+		BZ_SpawnProtection.Apply(spawnedEntity, playerId);
 
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 250, false, spawnedEntity);
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 1250, false, spawnedEntity);
