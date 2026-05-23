@@ -1,0 +1,14 @@
+SCR_ChimeraCharacter : "{840E5766CF5A57E6}Prefabs/Characters/Factions/PLASTICBANDIT/Character_PLASTICBANDIT_BaseLoadout.et" {
+ ID "520EC961A090B1EE"
+ components {
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{66C44581723F5C4D}" {
+     PrefabsToSpawn {
+      ""
+     }
+    }
+   }
+  }
+ }
+}

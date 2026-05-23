@@ -26,7 +26,7 @@ class BZ_MissionCooldownTracker
 	static const int BZ_MISSION_COOLDOWN_SEC = 3600;
 
 	//------------------------------------------------------------------------------------------------
-	static void RegisterStart(int subIdx)
+	static void RegisterStart(int subIdx, string posName = "")
 	{
 		if (subIdx < 0)
 			return;
@@ -35,10 +35,26 @@ class BZ_MissionCooldownTracker
 			s_aActiveSubIdx.Insert(subIdx);
 
 		Print(string.Format("[BrasilZ][MissionDedupe] subIdx %1 START. Active count: %2", subIdx, s_aActiveSubIdx.Count()), LogLevel.NORMAL);
+
+		// Discord webhook: notify mission start.
+		if (BZ_DiscordConfig.LOG_MISSION)
+		{
+			ref array<ref BZ_DiscordField> fields = new array<ref BZ_DiscordField>();
+			fields.Insert(new BZ_DiscordField("Mission", posName));
+			fields.Insert(new BZ_DiscordField("subIdx", subIdx.ToString()));
+			fields.Insert(new BZ_DiscordField("Active", s_aActiveSubIdx.Count().ToString()));
+
+			BZ_DiscordWebhook.Send(
+				"🎯 Missão iniciada",
+				"Bandidos invadiram **" + posName + "**",
+				BZ_DiscordConfig.COLOR_ORANGE,
+				fields
+			);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
-	static void RegisterEnd(int subIdx)
+	static void RegisterEnd(int subIdx, string posName = "", bool won = false)
 	{
 		if (subIdx < 0)
 			return;
@@ -50,6 +66,33 @@ class BZ_MissionCooldownTracker
 		s_mLastCompletionTime.Set(subIdx, System.GetUnixTime());
 
 		Print(string.Format("[BrasilZ][MissionCooldown] subIdx %1 END. Cooldown %2s ativado. Active count: %3", subIdx, BZ_MISSION_COOLDOWN_SEC, s_aActiveSubIdx.Count()), LogLevel.NORMAL);
+
+		// Discord webhook: notify mission end.
+		if (BZ_DiscordConfig.LOG_MISSION)
+		{
+			ref array<ref BZ_DiscordField> fields = new array<ref BZ_DiscordField>();
+			fields.Insert(new BZ_DiscordField("Mission", posName));
+			fields.Insert(new BZ_DiscordField("subIdx", subIdx.ToString()));
+			fields.Insert(new BZ_DiscordField("Cooldown", (BZ_MISSION_COOLDOWN_SEC / 60).ToString() + "min"));
+
+			string title;
+			string desc;
+			int color;
+			if (won)
+			{
+				title = "✅ Missão concluída";
+				desc = "Players retomaram **" + posName + "**";
+				color = BZ_DiscordConfig.COLOR_GREEN;
+			}
+			else
+			{
+				title = "⏹ Missão encerrada";
+				desc = "Missão **" + posName + "** terminou";
+				color = BZ_DiscordConfig.COLOR_GRAY;
+			}
+
+			BZ_DiscordWebhook.Send(title, desc, color, fields);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -141,13 +184,24 @@ modded class SDRC_Mission
 		super.MissionStart();
 
 		int subIdx = GetSubIdx();
-		BZ_MissionCooldownTracker.RegisterStart(subIdx);
+		string posName = GetPosName();
+		if (posName.IsEmpty())
+			posName = string.Format("subIdx %1", subIdx);
+
+		BZ_MissionCooldownTracker.RegisterStart(subIdx, posName);
 	}
 
 	override void MissionEnd()
 	{
 		int subIdx = GetSubIdx();
-		BZ_MissionCooldownTracker.RegisterEnd(subIdx);
+		string posName = GetPosName();
+		if (posName.IsEmpty())
+			posName = string.Format("subIdx %1", subIdx);
+
+		// IsWin() not exposed on every SDRC version, leave false.
+		bool won = false;
+
+		BZ_MissionCooldownTracker.RegisterEnd(subIdx, posName, won);
 
 		super.MissionEnd();
 	}

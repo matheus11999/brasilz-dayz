@@ -1,0 +1,19 @@
+MetaFileClass {
+ Name "{F173BD4149CB592B}Prefabs/Characters/Factions/PLASTICBANDIT/Stalker/Character_PLASTICBANDIT_Stalker_Legend_2.et"
+ Configurations {
+  EntityTemplateResourceClass PC {
+  }
+  EntityTemplateResourceClass XBOX_ONE : PC {
+  }
+  EntityTemplateResourceClass XBOX_SERIES : PC {
+  }
+  EntityTemplateResourceClass PS4 : PC {
+  }
+  EntityTemplateResourceClass PS5 : PC {
+  }
+  EntityTemplateResourceClass HEADLESS : PC {
+  }
+  EntityTemplateResourceClass Xbox : PC {
+  }
+ }
+}

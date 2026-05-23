@@ -31,12 +31,12 @@ $grp ParticleEffectEntity {
 }
 ZEL_SafeZoneEntity BrasilZ_SafeZone_TraderHub {
  components {
-  RplComponent "{B70100000000D011}" {
-  }
   BZ_SafezoneWeaponGuardComponent "{B70100000000D013}" {
    m_fRadius 260
    m_iCheckIntervalMs 100
    m_bDebug 1
+  }
+  RplComponent "{B70100000000D011}" {
   }
  }
  coords 5403.721 299.52 5634.185
@@ -93,15 +93,12 @@ $grp SCR_DestructibleBuildingEntity : "{1D70DE614FFACFE0}Prefabs/Structures/Cult
  }
 }
 SCR_DestructibleBuildingEntity BrasilZ_TraderHub_Gatehouse : "{43A29CB361BBBA26}Prefabs/Structures/Culture/Castle/CastleGatehouse.et" {
- coords 5370.96 0.007 5617.078
+ coords 5370.96 -0.455 5617.086
  angles 0.605 56.774 0.773
 }
 $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastructure/Lamps/LampStreet_E_01/E_LampStreet_E_01_6m.et" {
  {
-  coords 5370.042 0 5628.719
- }
- {
-  coords 5382.838 0 5610.302
+  coords 5362.358 0.088 5636.278
  }
  {
   coords 5393.306 0 5652.374
@@ -125,13 +122,13 @@ $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastr
   coords 5380.293 0 5655.871
  }
  {
-  coords 5404.515 0 5680.665
+  coords 5413.585 0 5685.682
  }
  {
-  coords 5369.895 0 5605.404
+  coords 5368.187 0 5609.194
  }
  {
-  coords 5361.474 -0.106 5619.422
+  coords 5364.195 -0.156 5615.63
  }
  {
   coords 5364.134 0 5645.219
@@ -140,10 +137,7 @@ $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastr
   coords 5386.088 0 5659.717
  }
  {
-  coords 5395.182 0 5632.721
- }
- {
-  coords 5431.695 0 5647.962
+  coords 5391.002 0 5631.001
  }
  {
   coords 5383.608 0 5665.591
@@ -161,7 +155,7 @@ $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastr
   coords 5418.821 0 5661.802
  }
  {
-  coords 5389.187 0.984 5597.635
+  coords 5387.827 0.984 5602.984
  }
  {
   coords 5371.549 -0.59 5670.62
@@ -170,7 +164,7 @@ $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastr
   coords 5411.402 0 5628.331
  }
  {
-  coords 5412.2 0 5655.244
+  coords 5404.679 0 5657.647
  }
  {
   coords 5447.146 0 5624.275
@@ -179,13 +173,19 @@ $grp GenericEntity : "{479481B171F52B35}PrefabsEditable/Auto/Structures/Infrastr
   coords 5418.097 0 5639.989
  }
  {
-  coords 5434.04 0 5630.603
- }
- {
   coords 5450.315 0 5607.904
  }
  {
   coords 5405.141 0 5642.646
+ }
+ {
+  coords 5424.566 -2.492 5653.175
+ }
+ {
+  coords 5418.658 -2.475 5657.322
+ }
+ {
+  coords 5427.364 -2.635 5650.789
  }
 }
 GenericEntity bicadagua : "{623915FB79E1EF33}PrefabsEditable/Auto/Structures/Infrastructure/Waterworks/WellPump_01/E_WellPump_01_red.et" {
@@ -263,7 +263,7 @@ $grp StaticModelEntity : "{D4ABEC6A0DB2E253}PrefabsEditable/Auto/Compositions/Mi
   angles 0 -33.517 0
  }
  {
-  coords 5393.043 0 5673.902
+  coords 5394.423 0 5672.438
   angles 0 146.871 0
  }
 }

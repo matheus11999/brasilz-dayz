@@ -1,0 +1,12 @@
+Bacon_622120A5448725E3_InfectedCharacter : "{FAF1350A99D893E7}622120A5448725E3/Prefabs/Characters/Variants/Variant_USSR_Rifleman.et" {
+ ID "520EC961A090B1EE"
+ components {
+  FM_CharacterInventoryStorageComponent "{520EA1D2DB118DAC}" {
+   m_aLootSlots {
+    FM_CatalogLootSlot "{68FE43DBF6E1C24D}" {
+     m_fSpawnChance 0
+    }
+   }
+  }
+ }
+}

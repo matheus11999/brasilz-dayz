@@ -1,0 +1,26 @@
+SCR_ChimeraCharacter : "{4AF5CA8950F943BB}Prefabs/Characters/Factions/PLASTICBANDIT/Scav/Character_PLASTICBANDIT_Scav_Chad.et" {
+ ID "520EC961A090B1EE"
+ components {
+  BaseLoadoutManagerComponent "{520EA1D2DB11821E}" {
+   Slots {
+    LoadoutSlotInfo Back {
+     Prefab "{FDA7B6630DB87991}Prefabs/Items/Equipment/Backpacks/Backpack_M70_Swiss.et"
+    }
+   }
+  }
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{66C44582DF976C60}" {
+     PrefabsToSpawn {
+      "" "" "{80E75A71C29190DB}Prefabs/Items/Medicine/Tourniquet_01/Tourniquet_USSR_01.et" "{3F1B1BAD1F6DDC28}Prefabs/Weapons/Attachments/Bayonets/Bayonet_VZ58/Bayonet_VZ58_v1.et" "{327103CB218E7CA1}Prefabs/Weapons/Flares/Flare_RSP30_white.et"
+     }
+    }
+    ItemsInitConfigurationItem "{66DE207A63308704}" {
+     PrefabsToSpawn {
+      "" "{36218D5F0C7095E6}Prefabs/Weapons/Flares/Flare_RSP30_red.et" "{0D9A5DCF89AE7AA9}Prefabs/Items/Medicine/MorphineInjection_01/MorphineInjection_01.et" "{527D7C5D2E476BDC}Prefabs/Items/Medicine/SalineBag_01/SalineBag_USSR_01.et" "{DCDF534783F9C73D}Prefabs/Items/Medicine/Vodka_Bottle/Vodka_Bottle.et" "{985019449602A950}Prefabs/Items/Equipment/Valuables/Valuable_MRE.et" "{1D91EF0619030A32}Prefabs/Items/Equipment/Valuables/Valuable_Aspirin.et" "{1D91EF0619030A32}Prefabs/Items/Equipment/Valuables/Valuable_Aspirin.et"
+     }
+    }
+   }
+  }
+ }
+}

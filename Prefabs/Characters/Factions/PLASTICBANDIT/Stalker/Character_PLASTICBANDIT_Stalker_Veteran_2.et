@@ -1,0 +1,14 @@
+SCR_ChimeraCharacter : "{34F236B87F308240}Prefabs/Characters/Factions/PLASTICBANDIT/Stalker/Character_PLASTICBANDIT_Stalker_Veteran.et" {
+ ID "520EC961A090B1EE"
+ components {
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{694647D5AA19E5DC}" {
+     PrefabsToSpawn {
+      "" "" ""
+     }
+    }
+   }
+  }
+ }
+}

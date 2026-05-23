@@ -1,0 +1,14 @@
+SCR_ChimeraCharacter : "{ED01FD5B050F8D1C}Prefabs/Characters/Factions/PLASTICBANDIT/Scav/Character_PLASTICBANDIT_Scav_Gopnik.et" {
+ ID "520EC961A090B1EE"
+ components {
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{66C44581723F5C4D}" {
+     PrefabsToSpawn {
+      ""
+     }
+    }
+   }
+  }
+ }
+}

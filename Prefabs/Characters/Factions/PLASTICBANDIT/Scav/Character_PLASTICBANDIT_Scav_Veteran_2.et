@@ -1,0 +1,14 @@
+SCR_ChimeraCharacter : "{08AFE0C974319080}Prefabs/Characters/Factions/PLASTICBANDIT/Scav/Character_PLASTICBANDIT_Scav_Veteran.et" {
+ ID "520EC961A090B1EE"
+ components {
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{694647D6489BDB8B}" {
+     PrefabsToSpawn {
+      "{4FAAB4D16D44851B}Prefabs/Items/Equipment/Valuables/Valuable_Ammo_545.et" ""
+     }
+    }
+   }
+  }
+ }
+}

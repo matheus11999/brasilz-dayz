@@ -1,0 +1,16 @@
+GenericEntity {
+ ID "5D7751550EF5EE4E"
+ components {
+  BaseLoadoutManagerComponent "{5D774D0B9B498936}" {
+   Enabled 0
+   Slots {
+    LoadoutSlotInfo Jacket {
+     Enabled 0
+    }
+    LoadoutSlotInfo Pants {
+     Enabled 0
+    }
+   }
+  }
+ }
+}

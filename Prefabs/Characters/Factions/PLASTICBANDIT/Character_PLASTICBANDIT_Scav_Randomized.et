@@ -1,0 +1,14 @@
+SCR_ChimeraCharacter : "{840E5766CF5A57E6}Prefabs/Characters/Factions/PLASTICBANDIT/Character_PLASTICBANDIT_BaseLoadout.et" {
+ ID "520EC961A090B1EE"
+ components {
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{66C44582DF976C60}" {
+     PrefabsToSpawn {
+      "" "" "{80E75A71C29190DB}Prefabs/Items/Medicine/Tourniquet_01/Tourniquet_USSR_01.et" "" "{327103CB218E7CA1}Prefabs/Weapons/Flares/Flare_RSP30_white.et"
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,21 @@
+SCR_ChimeraCharacter : "{4AF5CA8950F943BB}Prefabs/Characters/Factions/PLASTICBANDIT/Scav/Character_PLASTICBANDIT_Scav_Chad.et" {
+ ID "520EC961A090B1EE"
+ components {
+  BaseLoadoutManagerComponent "{520EA1D2DB11821E}" {
+   Slots {
+    LoadoutSlotInfo Back {
+     Prefab "{06B68C58B72EAAC6}Prefabs/Items/Equipment/Backpacks/Backpack_ALICE_Medium.et"
+    }
+   }
+  }
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{66DE207A63308704}" {
+     PrefabsToSpawn {
+      "" "{36218D5F0C7095E6}Prefabs/Weapons/Flares/Flare_RSP30_red.et" "{0D9A5DCF89AE7AA9}Prefabs/Items/Medicine/MorphineInjection_01/MorphineInjection_01.et" "{527D7C5D2E476BDC}Prefabs/Items/Medicine/SalineBag_01/SalineBag_USSR_01.et" "{C3C621B97FFAB952}Prefabs/Items/Equipment/Valuables/Valuable_Beer.et" "{C3C621B97FFAB952}Prefabs/Items/Equipment/Valuables/Valuable_Beer.et" "{AE18929299FA8741}Prefabs/Items/Equipment/Valuables/Valuable_SurgicalTools.et" "{1D91EF0619030A32}Prefabs/Items/Equipment/Valuables/Valuable_Aspirin.et"
+     }
+    }
+   }
+  }
+ }
+}

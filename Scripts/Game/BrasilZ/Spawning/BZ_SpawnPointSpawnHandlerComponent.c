@@ -145,9 +145,42 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 1250, false, spawnedEntity);
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 3000, false, spawnedEntity);
 
+		// Discord webhook: notify spawn event (after loadout applied so balance
+		// includes starter wallet). Delay 1.5s to let inventory replicate.
+		if (playerId > 0 && Replication.IsServer() && BZ_DiscordConfig.LOG_SPAWN)
+			GetGame().GetCallqueue().CallLater(BZ_NotifyDiscordSpawn, 1500, false, playerId, spawnedEntity);
+
 		// No-op for groups: BZ_GroupsManagerComponent.OnPlayerRegistered + OnPlayerAuditSuccess
 		// already skip vanilla auto-assign. Player joins no group on spawn, but can opt in via
 		// the post-spawn group menu (M key) to create or join one.
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_NotifyDiscordSpawn(int playerId, IEntity playerEntity)
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		string name = pm.GetPlayerName(playerId);
+		if (name.IsEmpty())
+			name = string.Format("Player %1", playerId);
+
+		vector pos;
+		if (playerEntity)
+			pos = playerEntity.GetOrigin();
+
+		ref array<ref BZ_DiscordField> fields = new array<ref BZ_DiscordField>();
+		fields.Insert(new BZ_DiscordField("Player", name));
+		fields.Insert(new BZ_DiscordField("Posição", string.Format("<%1, %2, %3>", Math.Round(pos[0]), Math.Round(pos[1]), Math.Round(pos[2]))));
+		BZ_DiscordWebhook.AddBalanceFields(playerEntity, fields);
+
+		BZ_DiscordWebhook.Send(
+			"🏠 Player respawnou",
+			"**" + name + "** spawnou no mundo",
+			BZ_DiscordConfig.COLOR_BLUE,
+			fields
+		);
 	}
 
 	//------------------------------------------------------------------------------------------------

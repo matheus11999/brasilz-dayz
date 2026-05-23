@@ -1,0 +1,14 @@
+SCR_ChimeraCharacter : "{9A03562C77AF6715}Prefabs/Characters/Factions/PLASTICBANDIT/Scav/Character_PLASTICBANDIT_Scav_BaseLoadout.et" {
+ ID "520EC961A090B1EE"
+ components {
+  SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
+   InitialInventoryItems {
+    ItemsInitConfigurationItem "{694647D6BF694AB1}" {
+     PrefabsToSpawn {
+      "{C3C621B97FFAB952}Prefabs/Items/Equipment/Valuables/Valuable_Beer.et" "{C3C621B97FFAB952}Prefabs/Items/Equipment/Valuables/Valuable_Beer.et" "{C3C621B97FFAB952}Prefabs/Items/Equipment/Valuables/Valuable_Beer.et" "" "{DCDF534783F9C73D}Prefabs/Items/Medicine/Vodka_Bottle/Vodka_Bottle.et" "{DCDF534783F9C73D}Prefabs/Items/Medicine/Vodka_Bottle/Vodka_Bottle.et" "" "" ""
+     }
+    }
+   }
+  }
+ }
+}
