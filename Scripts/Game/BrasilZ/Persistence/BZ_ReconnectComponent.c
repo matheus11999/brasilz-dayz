@@ -73,6 +73,37 @@ modded class SCR_ReconnectComponent
 	}
 
 	//------------------------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------------------------
+	// Force audit cleanup imediato pra TODOS players em m_ReconnectPlayerList.
+	// Chamado por BZ_RestartComponent pós-kick — vanilla audit timeout (>90s) não dispara
+	// antes do server close (~90s window). Sem isso, entities persistem em WorldState
+	// → body fantasma no próximo boot.
+	void BZ_ForceAuditAllNow()
+	{
+		if (m_ReconnectPlayerList.IsEmpty())
+		{
+			Print("[BrasilZ][Reconnect] BZ_ForceAuditAllNow: reconnect list vazia.", LogLevel.NORMAL);
+			return;
+		}
+
+		Print(string.Format("[BrasilZ][Reconnect] BZ_ForceAuditAllNow: processando %1 entries.", m_ReconnectPlayerList.Count()), LogLevel.NORMAL);
+
+		// Itera reverse pra remoção segura durante loop.
+		for (int i = m_ReconnectPlayerList.Count() - 1; i >= 0; i--)
+		{
+			int pid = m_ReconnectPlayerList[i].m_iPlayerId;
+			IEntity entity = m_ReconnectPlayerList[i].m_ReservedEntity;
+			m_ReconnectPlayerList.Remove(i);
+
+			if (entity)
+			{
+				Print(string.Format("[BrasilZ][Reconnect] BZ_ForceAuditAllNow: SaveAndRemove player %1.", pid), LogLevel.NORMAL);
+				SaveAndRemoveCharacter(entity, pid, 0);
+			}
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------
 	protected void SaveAndRemoveCharacter(IEntity entity, int playerId, int attempt)
 	{
 		if (!entity)

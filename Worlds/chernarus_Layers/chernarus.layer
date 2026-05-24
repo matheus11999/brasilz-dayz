@@ -30,15 +30,13 @@ PerceptionManager BrasilZ_PerceptionManager : "{028DAEAD63E056BE}Prefabs/World/G
 SCR_FactionManager BrasilZ_FactionManager : "{4A188E44289B9A50}Prefabs/MP/Managers/Factions/FactionManager_Editor.et" {
  coords 4504.43 6.429 2506.473
  Factions {
-  SCR_Faction "{622120A5448725E3}" : "{297E7D166247105C}622120A5448725E3/Configs/BaconZ_Faction.conf" {
-  }
   SCR_Faction "{607AA5C7A94496DA}" : "{3FA20B01D950D31F}Configs/Factions/CIV.conf" {
    m_bIsPlayable 1
    m_bShowInWelcomeScreenIfNonPlayable 0
   }
  }
 }
-RadioManagerEntity BrasilZ_RadioManager : "{B8E09FAB91C4ECCD}Prefabs/Systems/Radio/RadioManager.et" {
+RadioManagerEntity : "{B8E09FAB91C4ECCD}Prefabs/Systems/Radio/RadioManager.et" {
  coords 4512.43 6.429 2506.473
 }
 SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/ScenarioFramework/GameModeSF.et" {
@@ -73,9 +71,6 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
   SCR_AdditionalGameModeSettingsComponent "{6170E11C3C452ACC}" {
    m_eNametagRelationFilters SHOW_GROUP_MEMBERS
   }
-  SCR_RespawnTimerComponent "{B70500000000A001}" {
-   m_fRespawnTime 10
-  }
   SCR_DestructionManagerComponent "{258B34C52AD2128C}" {
   }
   SCR_HintManagerComponent "{59A268576D56E32A}" {
@@ -88,7 +83,15 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
   SCR_NametagConfigComponent "{571AA9E54FC9210D}" {
    m_sConfigPath "{09F7AAA14A642683}Configs/NameTags/NametagFriendlies.conf"
   }
+  SCR_RespawnTimerComponent "{B70500000000A001}" {
+   m_fRespawnTime 10
+  }
   SCR_SupportStationManagerComponent "{695B5135602F8702}" {
+  }
+  BZ_RestartComponent "{B70500000000B001}" {
+   m_sRestartHoursUTC "0,4,8,12,16,20"
+   m_iMinUptimeSec 7200
+   m_iPollIntervalMs 10000
   }
  }
  coords 4502.43 6.429 2506.473

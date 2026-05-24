@@ -6,6 +6,11 @@ SCR_ChimeraCharacter : "{8C7093AF368F496A}Prefabs/Characters/Factions/CIV/Generi
     "{0D4A60A33022D9DE}Sounds/RadioProtocol/RadioProtocol_CombatOps_CZ.acp"
    }
   }
+  SCR_CharacterStaminaComponent "{520EA1D2F659C824}" {
+   StaminaRegainPerS 0.02
+   StaminaDrainRun 0.005
+   StaminaDrainSprint -0.01
+  }
   SCR_EditableCharacterComponent "{520EA1D2F659C85C}" {
    m_UIInfo SCR_EditableEntityUIInfo "{5298E609432D192D}" {
     Name "BrasilZ Survivor"
@@ -38,16 +43,16 @@ SCR_ChimeraCharacter : "{8C7093AF368F496A}Prefabs/Characters/Factions/CIV/Generi
   }
   SCR_InventoryStorageManagerComponent "{520EA1D2DB118DE5}" {
    InitialInventoryItems {
-   ItemsInitConfigurationItem "{B70300000000E001}" {
+    ItemsInitConfigurationItem "{B70300000000E001}" {
      TargetStorage "Jacket/Shirt_CottonShirt_01_V1.et"
      PrefabsToSpawn {
       "{575EA58E67448C2A}Prefabs/Items/Equipment/Flashlights/Flashlight_Soviet_01/Flashlight_Soviet_01.et" "{E5FF2886246E0797}Prefabs/Knifes/HuntsmanKnife/HuntsmanKnifeAC.et" "{F539F8AD9A0D2249}Prefabs/Items/WalletFisicalValue.et"
      }
     }
-   ItemsInitConfigurationItem "{B70300000000E002}" {
+    ItemsInitConfigurationItem "{B70300000000E002}" {
      TargetStorage "Pants/Pants_Trousers_01_DarkBrown.et"
      PrefabsToSpawn {
-      "{983B57B8E95C1F52}Prefabs/Items/Equipment/Maps/Map_Paper_01/PaperMap_01_folded_FIA.et" "{619D10551472D7DC}Prefabs/FoodDrink/Apple.et" "{2DA40953CC5C6D88}Prefabs/FoodDrink/WaterBottler.et" "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et"
+      "{983B57B8E95C1F52}Prefabs/Items/Equipment/Maps/Map_Paper_01/PaperMap_01_folded_FIA.et" "{619D10551472D7DC}Prefabs/FoodDrink/Apple.et" "{2DA40953CC5C6D88}Prefabs/FoodDrink/WaterBottler.et" "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et" "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et" "{B70300000000D100}Prefabs/Items/Deployables/BrasilZ_DeployableBike_01.et" "{764B360086B4EDE9}Prefabs/Items/Medicine/Gauze.et"
      }
     }
    }

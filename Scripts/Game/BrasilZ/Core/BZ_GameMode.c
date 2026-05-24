@@ -51,6 +51,12 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 	protected ref array<IEntity> m_aBzOrphanScanResults;
 	protected ref array<IEntity> m_aBzMissionAiResults;
+	protected ref array<IEntity> m_aBzBikeResults;
+	// FIX (zombie WorldState bloat) — ambient zombies were persisting in WorldState.json.
+	// 357 entries × ~17KB each = 6.2MB, hit 16MB engine limit → SAVE_FAILED → players lose
+	// progress on restart. Boot scan now wipes any leftover zombie chars from disk so save
+	// stays small. Live zombies also get SetPersistence(false) via BZ_BaconZombieTuning.
+	protected ref array<IEntity> m_aBzZombieResults;
 	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
 
@@ -162,8 +168,24 @@ modded class SCR_BaseGameMode : BaseGameMode
 			return;
 		}
 		int scanStartTick = System.GetTickCount();
-		Print("[BrasilZ][BootScan] Starting orphan scan (this gates player connects until done)", LogLevel.NORMAL);
 		m_bBzOrphanScanDone = true;
+
+		// PLAYER ORPHAN SCAN DISABLED (2026-05-23) — adoption of ReforgedZ pattern.
+		//
+		// Previously: walked the world looking for alive ChimeraCharacter entities matching
+		// BrasilZ player prefabs that weren't controlled by an online player, then either
+		// deleted (broke weapon binding via DeleteEntityAndChildren) or sunk Y=-3000 (got
+		// persisted in save, player respawned underground).
+		//
+		// Now: SCR_ReconnectComponent.m_ReconnectPlayerList holds disconnected player
+		// entities with an audit timeout. BZ_ReconnectComponent.OnPlayerAuditTimeouted
+		// calls SaveAndRemoveCharacter → save + delete cleanly. After server restart,
+		// the engine repopulates the reconnect list from persistence and the same audit
+		// cleanup runs. No orphan scan needed.
+		//
+		// Mission AI wipe still runs below — DarcMissions entities aren't in the reconnect
+		// list and need explicit cleanup.
+		Print("[BrasilZ][BootScan] Player orphan scan SKIPPED — vanilla SCR_ReconnectComponent + BZ_ReconnectComponent audit-timeout handles disconnect cleanup. Mission AI wipe still runs below.", LogLevel.NORMAL);
 
 		BaseWorld world = GetGame().GetWorld();
 		if (!world)
@@ -174,50 +196,147 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		m_aBzOrphanScanResults = new array<IEntity>();
 		m_aBzMissionAiResults = new array<IEntity>();
+		m_aBzBikeResults = new array<IEntity>();
+		m_aBzZombieResults = new array<IEntity>();
 		world.QueryEntitiesBySphere(vector.Zero, BZ_ORPHAN_SCAN_RADIUS, BZ_QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
+
+		// NOTE: m_aBzOrphanScanResults is populated by the query callback but we no longer
+		// iterate over it for deletion. Clearing here so the array doesn't hold stale refs.
+		int orphansSeenButSkipped = m_aBzOrphanScanResults.Count();
+		m_aBzOrphanScanResults.Clear();
+		Print(string.Format("[BrasilZ][BootScan] Saw %1 player orphan candidates — left intact (audit timeout will handle them).", orphansSeenButSkipped), LogLevel.NORMAL);
 
 		PlayerManager pm = GetGame().GetPlayerManager();
 		int deleted = 0;
 		int wipedMissionAi = 0;
+		int wipedZombies = 0;
 
 		foreach (IEntity entity : m_aBzOrphanScanResults)
 		{
 			if (!entity || entity.IsDeleted())
+			{
+				Print("[BrasilZ][BootScan] Skip — entity null/deleted", LogLevel.NORMAL);
 				continue;
+			}
 
 			ChimeraCharacter character = ChimeraCharacter.Cast(entity);
 			if (!character)
+			{
+				Print(string.Format("[BrasilZ][BootScan] Skip — not ChimeraCharacter at %1", entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
+			}
 
 			// Owned by a connected player → leave alone.
 			if (pm && pm.GetPlayerIdFromControlledEntity(entity) > 0)
+			{
+				int ownerId = pm.GetPlayerIdFromControlledEntity(entity);
+				Print(string.Format("[BrasilZ][BootScan] Skip — entity at %1 owned by online player %2", entity.GetOrigin(), ownerId), LogLevel.NORMAL);
 				continue;
+			}
 
 			// Skip dead/INCAPACITATED corpses — those are PvP loot and MUST stay visible
 			// across restarts so a kill 5 minutes before reboot doesn't get wiped on boot.
 			// Corpses accumulate forever; admin can clean manually if needed.
 			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(character);
 			if (dmg && dmg.IsDestroyed())
+			{
+				Print(string.Format("[BrasilZ][BootScan] Skip — corpse (destroyed) at %1, preserved for loot", entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
+			}
 
 			CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
 			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
+			{
+				Print(string.Format("[BrasilZ][BootScan] Skip — lifeState=%1 at %2", typename.EnumToString(ECharacterLifeState, cc.GetLifeState()), entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
+			}
 
-			// DELETE alive orphan bodies instead of burying. SessionStorage already holds the
-			// player's last legit save (position, inventory, health). Leaving the body alive
-			// underground caused autosave to persist the buried Y-1000 over the legit save,
-			// making the player respawn at sea floor on reconnect. Deleting the entity removes
-			// the bad source of truth; vanilla restores from SessionStorage cleanly.
+			// Pre-sink diagnostics: count children + identify weapon/gadget. Critical to
+			// understand what entities WOULD have been deleted by the old DeleteEntityAndChildren.
+			// Children stay intact via sink approach but log helps verify.
+			int childCount = 0;
+			string childInfo = "";
+			IEntity child = entity.GetChildren();
+			while (child && childCount < 20)
+			{
+				ResourceName childPrefab = "(no-prefab)";
+				if (child.GetPrefabData())
+					childPrefab = child.GetPrefabData().GetPrefabName();
+				childInfo = childInfo + string.Format("\n  child[%1] prefab=%2", childCount, childPrefab);
+				child = child.GetSibling();
+				childCount++;
+			}
+
+			// Identify equipped weapon for diagnostic clarity.
+			string equippedWeapon = "(none)";
+			if (cc)
+			{
+				BaseWeaponManagerComponent wm = cc.GetWeaponManagerComponent();
+				if (wm)
+				{
+					BaseWeaponComponent curWeapon = wm.GetCurrent();
+					if (curWeapon && curWeapon.GetOwner() && curWeapon.GetOwner().GetPrefabData())
+						equippedWeapon = curWeapon.GetOwner().GetPrefabData().GetPrefabName();
+				}
+			}
+
+			float orphanHP = -1;
+			if (dmg)
+				orphanHP = dmg.GetHealth();
+			Print(string.Format("[BrasilZ][BootScan] FOUND alive orphan at %1 | HP=%2 | children=%3 | equipped=%4%5",
+				entity.GetOrigin(),
+				orphanHP,
+				childCount,
+				equippedWeapon,
+				childInfo), LogLevel.NORMAL);
+
+			// DELETE alive orphan parent only — DO NOT touch children. The previous
+			// DeleteEntityAndChildren recursively nuked the equipped weapon and inventory
+			// entities, breaking WeaponManager bindings on reconnect (reload/inspect
+			// broken). The previous SINK to Y=-3000 caused the engine save to persist
+			// the underground Y over the legit save — player respawned at Y=-1993 in
+			// pitch-black void.
+			//
+			// Correct path: stop persistence tracking BEFORE delete (so engine doesn't
+			// save anything about this entity), then RplComponent.DeleteRplEntity with
+			// recursive=false. Children become loose entities; engine garbage-collects
+			// orphaned weapons/items eventually. SessionStorage holds the player's
+			// legit save data independently — reconnect uses that.
 			vector orphanPos = entity.GetOrigin();
-			SCR_EntityHelper.DeleteEntityAndChildren(entity);
 
-			Print(string.Format("[BrasilZ][BootScan] Deleted alive orphan body at %1 (SessionStorage save preserved).", orphanPos), LogLevel.NORMAL);
+			// Stop persistence tracking first so engine doesn't autosave the entity
+			// during the delete window (would persist with stale GUID references).
+			SCR_PersistenceSystem orphanPersist = SCR_PersistenceSystem.GetByEntityWorld(entity);
+			if (orphanPersist && orphanPersist.GetState() == EPersistenceSystemState.ACTIVE)
+			{
+				orphanPersist.StopTracking(entity);
+				Print(string.Format("[BrasilZ][BootScan] StopTracking on orphan at %1 before delete", orphanPos), LogLevel.NORMAL);
+			}
+
+			// Single-entity delete via Rpl (recursive=false). Keeps weapon/inventory
+			// children floating — engine garbage-collects.
+			RplComponent orphanRpl = RplComponent.Cast(entity.FindComponent(RplComponent));
+			if (orphanRpl)
+			{
+				RplComponent.DeleteRplEntity(entity, false);
+				Print(string.Format("[BrasilZ][BootScan] DeleteRplEntity(recursive=false) on orphan at %1", orphanPos), LogLevel.NORMAL);
+			}
+			else
+			{
+				// Fallback: SCR_EntityHelper has no single-entity option easily; use
+				// AndChildren as last resort. Only happens if entity has no RplComponent
+				// (rare for player-prefab orphans).
+				SCR_EntityHelper.DeleteEntityAndChildren(entity);
+				Print(string.Format("[BrasilZ][BootScan] FALLBACK DeleteEntityAndChildren on orphan at %1 (no RplComponent — children also deleted)", orphanPos), LogLevel.WARNING);
+			}
+
 			deleted++;
 		}
 
 		m_aBzOrphanScanResults = null;
-		Print(string.Format("[BrasilZ][BootScan] Orphan scan complete - deleted %1 alive orphan bodies. Dead corpses left for loot.", deleted), LogLevel.NORMAL);
+		// 'deleted' will always be 0 now because the player orphan scan is disabled (see top of method).
+		// SCR_ReconnectComponent audit timeout handles disconnected player cleanup.
+		Print("[BrasilZ][BootScan] Player orphan deletion phase SKIPPED (see ReforgedZ-pattern adoption). Dead corpses left for 30min loot via BZ_TickCorpseCleanup.", LogLevel.NORMAL);
 
 		// Mission AI wipe pass — delete leftover bandit chars from interrupted missions.
 		foreach (IEntity missionAi : m_aBzMissionAiResults)
@@ -233,8 +352,66 @@ modded class SCR_BaseGameMode : BaseGameMode
 		}
 
 		m_aBzMissionAiResults = null;
-		int scanElapsedMs = System.GetTickCount() - scanStartTick;
+		int bikeCandidates = m_aBzBikeResults.Count();
+		int wipedBikes = 0;
+		foreach (IEntity bikeEnt : m_aBzBikeResults)
+		{
+			if (!bikeEnt || bikeEnt.IsDeleted())
+				continue;
+
+			SCR_PersistenceSystem bikePersist = SCR_PersistenceSystem.GetByEntityWorld(bikeEnt);
+			if (bikePersist && bikePersist.GetState() == EPersistenceSystemState.ACTIVE)
+				bikePersist.StopTracking(bikeEnt);
+
+			RplComponent bikeRpl = RplComponent.Cast(bikeEnt.FindComponent(RplComponent));
+			if (bikeRpl)
+				RplComponent.DeleteRplEntity(bikeEnt, false);
+			else
+				SCR_EntityHelper.DeleteEntityAndChildren(bikeEnt);
+
+			wipedBikes++;
+		}
+
+		m_aBzBikeResults = null;
+		Print(string.Format("[BrasilZ][BootScan] Deployable bike wipe complete - candidates=%1 deleted=%2.", bikeCandidates, wipedBikes), LogLevel.NORMAL);
 		Print(string.Format("[BrasilZ][BootScan] Mission AI wipe complete - removed %1 leftover mission AI entities (factions: %2).", wipedMissionAi, s_aBzMissionEnemyFactionKeys), LogLevel.NORMAL);
+
+		// FIX (zombie WorldState bloat) — wipe leftover ambient zombies from previous session.
+		// Pre-fix saves accumulated 357 zombies × 17KB = 6.2MB in WorldState.json, hitting the
+		// 16MB engine limit and breaking saves. SetPersistence(false) in BZ_BaconZombieTuning
+		// stops NEW zombies from being persisted, but existing save still has stale entries —
+		// boot wipe removes them so the next save shrinks.
+		int zombieCandidates = m_aBzZombieResults.Count();
+		foreach (IEntity zombieEnt : m_aBzZombieResults)
+		{
+			if (!zombieEnt || zombieEnt.IsDeleted())
+				continue;
+
+			// Defensive: never wipe a player-controlled char (paranoia — query already filters
+			// by prefab whitelist but double-check here).
+			if (pm && pm.GetPlayerIdFromControlledEntity(zombieEnt) > 0)
+				continue;
+
+			// Stop persistence tracking so the engine doesn't write the entity back to disk
+			// during the delete window.
+			SCR_PersistenceSystem zPersist = SCR_PersistenceSystem.GetByEntityWorld(zombieEnt);
+			if (zPersist && zPersist.GetState() == EPersistenceSystemState.ACTIVE)
+				zPersist.StopTracking(zombieEnt);
+
+			SCR_EntityHelper.DeleteEntityAndChildren(zombieEnt);
+			wipedZombies++;
+		}
+
+		m_aBzZombieResults = null;
+		Print(string.Format("[BrasilZ][BootScan] Zombie wipe complete - candidates=%1 deleted=%2 (factionless ambient zombies, prevents WorldState bloat).", zombieCandidates, wipedZombies), LogLevel.NORMAL);
+
+		if (wipedBikes > 0)
+		{
+			GetGame().GetCallqueue().CallLater(BZ_FlushSaveToDisk, 5000, false);
+			Print("[BrasilZ][BootScan] Scheduled save flush after deployable bike cleanup.", LogLevel.NORMAL);
+		}
+
+		int scanElapsedMs = System.GetTickCount() - scanStartTick;
 		Print(string.Format("[BrasilZ][BootScan] Total scan time: %1ms. Gated connects will now proceed.", scanElapsedMs), LogLevel.NORMAL);
 	}
 
@@ -251,15 +428,21 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (!entity)
 			return true;
 
-		if (!ChimeraCharacter.Cast(entity))
-			return true;
-
 		auto prefabData = entity.GetPrefabData();
 		if (!prefabData)
 			return true;
 
 		ResourceName prefab = prefabData.GetPrefabName();
 		if (prefab.IsEmpty())
+			return true;
+
+		if (prefab == "{3FDBFE7F1A1EB8F2}Prefabs/Vehicles/Wheeled/WW2_Bike/WW2_Bike_base.et")
+		{
+			m_aBzBikeResults.Insert(entity);
+			return true;
+		}
+
+		if (!ChimeraCharacter.Cast(entity))
 			return true;
 
 		if (s_aBzPlayerCharacterPrefabs.Contains(prefab))
@@ -269,11 +452,29 @@ modded class SCR_BaseGameMode : BaseGameMode
 		}
 
 		FactionAffiliationComponent facComp = FactionAffiliationComponent.Cast(entity.FindComponent(FactionAffiliationComponent));
+		string factionKey = "";
+		bool hasFaction = false;
 		if (facComp)
 		{
 			Faction faction = facComp.GetAffiliatedFaction();
-			if (faction && s_aBzMissionEnemyFactionKeys.Contains(faction.GetFactionKey()))
-				m_aBzMissionAiResults.Insert(entity);
+			if (faction)
+			{
+				factionKey = faction.GetFactionKey();
+				hasFaction = true;
+				if (s_aBzMissionEnemyFactionKeys.Contains(factionKey))
+				{
+					m_aBzMissionAiResults.Insert(entity);
+					return true;
+				}
+			}
+		}
+
+		// Zombie classification: ChimeraCharacter with NO faction (or empty factionKey),
+		// not in player prefab whitelist, not in mission AI faction list. Ambient BaconZombies
+		// match this — they spawn without affiliation. Wipe at boot to keep WorldState lean.
+		if (!hasFaction || factionKey.IsEmpty())
+		{
+			m_aBzZombieResults.Insert(entity);
 		}
 
 		return true;
@@ -325,10 +526,49 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		s_bBzSaveInProgress = true;
 		int startTick = System.GetTickCount();
+
+		// EXPLICIT PLAYER ENTITY SAVE — without this, autosave only persists world state
+		// via SaveGameManager. Player characters that are still alive in-world (online)
+		// do NOT get their current position/inventory/HP serialized during the autosave
+		// flush. Result: after server restart, online players reverted to the last
+		// SCR_PersistenceSystem.Save event (typically the last disconnect or kill).
+		//
+		// Pattern from ReforgedZ_RespawnSystemComponent.OnPlayerKilled_S (lines 348-357):
+		// explicit persistence.Save(controller) + persistence.Save(character) BEFORE
+		// the world flush. We do the same here for every online player every autosave
+		// tick to capture in-flight state (movement, looting, combat damage, metabolism).
+		PlayerManager pmAuto = GetGame().GetPlayerManager();
+		SCR_PersistenceSystem persistAuto = SCR_PersistenceSystem.GetByEntityWorld(this);
+		int savedPlayerCount = 0;
+		if (pmAuto && persistAuto && persistAuto.GetState() == EPersistenceSystemState.ACTIVE)
+		{
+			array<int> playerIds = {};
+			pmAuto.GetPlayers(playerIds);
+
+			foreach (int pid : playerIds)
+			{
+				if (pid <= 0)
+					continue;
+
+				SCR_PlayerController pcAuto = SCR_PlayerController.Cast(pmAuto.GetPlayerController(pid));
+				if (pcAuto)
+				{
+					persistAuto.Save(pcAuto);
+				}
+
+				IEntity charAuto = pmAuto.GetPlayerControlledEntity(pid);
+				if (charAuto)
+				{
+					persistAuto.Save(charAuto);
+					savedPlayerCount++;
+				}
+			}
+		}
+
 		bool ok = BZ_OverwriteLatestSave(saveManager);
 		int elapsedMs = System.GetTickCount() - startTick;
 		s_bBzSaveInProgress = false;
-		Print(string.Format("[BrasilZ][AutoSave] Tick ok=%1 elapsed=%2ms", ok, elapsedMs), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][AutoSave] Tick ok=%1 elapsed=%2ms savedPlayers=%3", ok, elapsedMs, savedPlayerCount), LogLevel.NORMAL);
 
 		if (!ok)
 			Print("[BrasilZ][AutoSave] No save to overwrite", LogLevel.WARNING);
@@ -396,18 +636,58 @@ modded class SCR_BaseGameMode : BaseGameMode
 	protected void BZ_DecoupleDeadBody(IEntity body, int playerId)
 	{
 		if (!body)
+		{
+			Print(string.Format("[BrasilZ][Decouple] Player %1 — body NULL, skip decouple", playerId), LogLevel.WARNING);
 			return;
+		}
+
+		vector bodyPos = body.GetOrigin();
+
+		// Identify equipped weapon + children count BEFORE decouple, so log shows
+		// what items are about to enter the 30-min loot window.
+		int childCount = 0;
+		IEntity ch = body.GetChildren();
+		while (ch && childCount < 30)
+		{
+			ch = ch.GetSibling();
+			childCount++;
+		}
+
+		string equippedPrefab = "(none)";
+		CharacterControllerComponent ccDecouple = CharacterControllerComponent.Cast(body.FindComponent(CharacterControllerComponent));
+		if (ccDecouple)
+		{
+			BaseWeaponManagerComponent wmDecouple = ccDecouple.GetWeaponManagerComponent();
+			if (wmDecouple)
+			{
+				BaseWeaponComponent curW = wmDecouple.GetCurrent();
+				if (curW && curW.GetOwner() && curW.GetOwner().GetPrefabData())
+					equippedPrefab = curW.GetOwner().GetPrefabData().GetPrefabName();
+			}
+		}
 
 		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetByEntityWorld(body);
-		if (!persistence || persistence.GetState() != EPersistenceSystemState.ACTIVE)
+		if (!persistence)
+		{
+			Print(string.Format("[BrasilZ][Decouple] Player %1 — persistence NULL at %2, skip", playerId, bodyPos), LogLevel.WARNING);
 			return;
+		}
+
+		int persistState = persistence.GetState();
+		if (persistState != EPersistenceSystemState.ACTIVE)
+		{
+			Print(string.Format("[BrasilZ][Decouple] Player %1 — persistence not ACTIVE (state=%2), skip decouple", playerId, persistState), LogLevel.WARNING);
+			return;
+		}
+
+		Print(string.Format("[BrasilZ][Decouple] Player %1 BEGIN | pos=%2 | children=%3 | equipped=%4", playerId, bodyPos, childCount, equippedPrefab), LogLevel.NORMAL);
 
 		persistence.StopTracking(body);
 		persistence.StartTracking(body);
 		persistence.Save(body, ESaveGameType.AUTO);
 
 		BZ_TrackCorpseForCleanup(body);
-		Print(string.Format("[BrasilZ] Dead body decoupled for player %1 (30min lootable timer started)", playerId), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][Decouple] Player %1 END — corpse decoupled (30min lootable timer started, tracked corpses=%2)", playerId, m_aBzTrackedCorpses.Count()), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -460,6 +740,9 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		int currentTime = System.GetTickCount();
 		float lifetimeMs = BZ_CORPSE_LIFETIME_SEC * 1000;
+		int cleaned = 0;
+		int pruned = 0;
+		int kept = 0;
 
 		for (int i = m_aBzTrackedCorpses.Count() - 1; i >= 0; i--)
 		{
@@ -468,18 +751,38 @@ modded class SCR_BaseGameMode : BaseGameMode
 			{
 				m_aBzTrackedCorpses.Remove(i);
 				m_aBzCorpseDeathTimes.Remove(i);
+				pruned++;
 				continue;
 			}
 
 			float ageMs = currentTime - m_aBzCorpseDeathTimes[i];
 			if (ageMs >= lifetimeMs)
 			{
-				Print(string.Format("[BrasilZ] Cleaning up corpse at %1 (age: %2min)", corpse.GetOrigin(), ageMs / 60000), LogLevel.NORMAL);
+				vector cpos = corpse.GetOrigin();
+
+				// Count children + prefab for diagnostic (post-30min loot items getting nuked).
+				int corpseChildren = 0;
+				IEntity cch = corpse.GetChildren();
+				while (cch && corpseChildren < 30)
+				{
+					cch = cch.GetSibling();
+					corpseChildren++;
+				}
+
+				Print(string.Format("[BrasilZ][CorpseCleanup] Removing corpse at %1 (age=%2min, children=%3 will be deleted via DeleteEntityAndChildren)", cpos, ageMs / 60000, corpseChildren), LogLevel.NORMAL);
 				m_aBzTrackedCorpses.Remove(i);
 				m_aBzCorpseDeathTimes.Remove(i);
 				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
+				cleaned++;
+			}
+			else
+			{
+				kept++;
 			}
 		}
+
+		if (cleaned > 0 || pruned > 0)
+			Print(string.Format("[BrasilZ][CorpseCleanup] Tick complete: cleaned=%1 (age>30min) pruned=%2 (null refs) kept=%3 (still in window)", cleaned, pruned, kept), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -605,6 +908,17 @@ modded class SCR_BaseGameMode : BaseGameMode
 	override void OnPlayerConnected(int playerId)
 	{
 		Print(string.Format("[BrasilZ][Connect] Player %1 connecting (scanDone=%2, proxy=%3)", playerId, m_bBzOrphanScanDone, BZ_IsProxy()), LogLevel.NORMAL);
+
+		// Reject reconnects durante shutdown window — server vai fechar em ~90s, evita
+		// player entrar/spawnar/criar entity nova que viraria órfão no save.
+		if (BZ_RestartComponent.IsShutdownInProgress() && !BZ_IsProxy())
+		{
+			Print(string.Format("[BrasilZ][Connect] Player %1 REJECTED — server shutdown em curso. Kick imediato.", playerId), LogLevel.WARNING);
+			PlayerManager pm = GetGame().GetPlayerManager();
+			if (pm)
+				pm.KickPlayer(playerId, PlayerManagerKickReason.KICK, 0);
+			return;
+		}
 
 		if (!m_bBzOrphanScanDone && !BZ_IsProxy())
 		{

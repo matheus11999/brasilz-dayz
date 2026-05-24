@@ -1,0 +1,97 @@
+OverlayWidgetClass {
+ Name "BZRestartMsgBoxOverlay"
+ Slot OverlayWidgetSlot "{B7A1D3F4304C91B1}" {
+  Padding 10 10 10 10
+ }
+ components {
+  BZ_RestartMsgBox "{B7A1D3F4304C91B2}" {
+  }
+ }
+ {
+  PanelWidgetClass "{B7A1D3F4304C91B3}" {
+   Name "MsgPanel"
+   Slot OverlayWidgetSlot "{B7A1D3F4304C91B4}" {
+   }
+   Color 0.015 0.018 0.02 0.94
+   style full
+   {
+    OverlayWidgetClass "{B7A1D3F4304C91B5}" {
+     Name "MsgPaddingOverlay"
+     Slot FrameWidgetSlot "{B7A1D3F4304C91B6}" {
+      OffsetLeft 0
+      OffsetTop 0
+      SizeX 100
+      OffsetRight -100
+      SizeY 30
+      OffsetBottom -30
+      SizeToContent 1
+     }
+     {
+      HorizontalLayoutWidgetClass "{B7A1D3F4304C91B7}" {
+       Name "HorizontalLayout"
+       Slot OverlayWidgetSlot "{B7A1D3F4304C91B8}" {
+        HorizontalAlign 3
+        VerticalAlign 0
+       }
+       {
+        ImageWidgetClass "{B7A1D3F4304C91B9}" {
+         Name "Fill"
+         Slot LayoutSlot "{B7A1D3F4304C91BA}" {
+          SizeMode Fill
+         }
+         Color 0.95 0.16 0.08 1
+         Size 6 6
+        }
+        ImageWidgetClass "{B7A1D3F4304C91BB}" {
+         Name "Empty"
+         Slot LayoutSlot "{B7A1D3F4304C91BC}" {
+          SizeMode Fill
+          FillWeight 0
+         }
+         Color 0 0 0 0
+         Size 6 6
+        }
+       }
+      }
+      FrameWidgetClass "{B7A1D3F4304C91BD}" {
+       Name "MsgPaddingFrame"
+       Slot OverlayWidgetSlot "{B7A1D3F4304C91BE}" {
+        Padding 18 14 18 16
+       }
+       {
+        SizeLayoutWidgetClass "{B7A1D3F4304C91BF}" {
+         Name "SizeLayout"
+         Slot FrameWidgetSlot "{B7A1D3F4304C91C0}" {
+          OffsetLeft 0
+          OffsetTop 0
+          SizeX 0
+          OffsetRight 0
+          SizeY 0
+          OffsetBottom 0
+          SizeToContent 1
+         }
+         AllowMaxDesiredWidth 1
+         MaxDesiredWidth 900
+         {
+          TextWidgetClass "{B7A1D3F4304C91C1}" {
+           Name "MsgText"
+           Slot AlignableSlot "{B7A1D3F4304C91C2}" {
+           }
+           "Z Order" 1
+           Text ""
+           "Font Size" 48
+           "Min Font Size" 32
+           Color 1 1 1 1
+           Wrap 1
+           "Line Spacing" 1
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

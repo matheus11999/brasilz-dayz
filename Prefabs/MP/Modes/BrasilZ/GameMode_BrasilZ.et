@@ -42,7 +42,7 @@ SCR_BaseGameMode {
   SCR_SupportStationManagerComponent "{695B5135602F8702}" {
   }
   BZ_RestartComponent "{695B7335262CB500}" {
-   m_sRestartHoursUTC "0,4,8,12,16,20"
+   m_sRestartHoursUTC ""
    m_iMinUptimeSec 7200
    m_iPollIntervalMs 10000
   }

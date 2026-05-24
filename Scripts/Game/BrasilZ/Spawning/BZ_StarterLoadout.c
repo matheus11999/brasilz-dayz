@@ -1,5 +1,6 @@
 class BZ_StarterLoadout
 {
+	static const bool ENABLE_STARTER_LOADOUT = false;
 	static const string LOADOUT_VERSION = "brasilz-civil-starter-v15";
 
 	// Guard against duplicate Apply calls. Spawn handler + character controller both schedule
@@ -20,6 +21,9 @@ class BZ_StarterLoadout
 	//------------------------------------------------------------------------------------------------
 	static void Apply(IEntity character)
 	{
+		if (!ENABLE_STARTER_LOADOUT)
+			return;
+
 		if (!character)
 			return;
 

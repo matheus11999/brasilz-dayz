@@ -1,10 +1,32 @@
 // Rebuild marker: forces Workbench to detect source change and repackage the .pak.
 // Bump the comment whenever the published addon needs a refresh on disk.
-// Last bump: 2026-05-21 — remove RemovePlayerFromGroupsOnSpawn safety net (proper override in BZ_GroupsManagerComponent already blocks vanilla auto-assign).
+// Last bump: 2026-05-23 — AUTO-SPAWN override (skip deploy menu, random BZ_SpawnPoint).
 class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 {
 	protected static const int MAX_PERSISTENCE_ACTIVE_WAIT_MS = 30000;
 	protected static const int PERSISTENCE_ACTIVE_CHECK_INTERVAL_MS = 100;
+
+	// Toggle: se true, pula deploy menu e spawna direto em random BZ_SpawnPoint com faction CIV.
+	// Se false, vanilla behavior (deploy menu).
+	protected static const bool BZ_AUTO_SPAWN_ENABLED = true;
+
+	// INCAP detection: player vira INCAPACITATED (HP=0 mas char não destroyed → não dispara
+	// EntityLost → fica caído sem respawn). Ticker varre players + forçaa morte se INCAP > N ms.
+	// Reduzido pra 3s — sem death screen UI, player não tem tempo de espera longo aceitável.
+	protected static const int BZ_INCAP_FORCE_KILL_MS = 3000;     // 3s stuck → kill
+	protected static const int BZ_INCAP_CHECK_INTERVAL_MS = 1000; // checa a cada 1s
+	protected static const int BZ_DEATH_AUTOSPAWN_DELAY_MS = 500;
+	protected static const int BZ_DEATH_AUTOSPAWN_RETRY_MS = 250;
+	protected static const int BZ_DEATH_AUTOSPAWN_MAX_RETRIES = 2;
+	protected static const int BZ_DEATH_AUTOSPAWN_PENDING_CLEAR_MS = 7000;
+	protected static const int BZ_DEATH_AUTOSPAWN_VERIFY_MS = 1000;
+	protected static const int BZ_DEATH_AUTOSPAWN_VERIFY_MAX = 5;
+	protected static const int BZ_CONNECT_AUTOSPAWN_CHECK_MS = 15000;
+	protected ref map<int, int> m_mBzIncapStartTime = new map<int, int>();
+	protected static ref map<int, int> s_mBzDeathRespawnRetries = new map<int, int>();
+	protected static ref map<int, int> s_mBzDeathRespawnVerifyRetries = new map<int, int>();
+	protected static ref set<int> s_aBzDeathRespawnPending = new set<int>();
+	protected bool m_bBzIncapTickerArmed = false;
 
 	protected ref map<int, int> m_mPersistenceWaitTime = new map<int, int>();
 
@@ -21,14 +43,170 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		m_eDisconnectCharacterBehaviour = SCR_ESpawnLogicDisconnectBehaviour.SAVE;
 		m_sForcedFaction = "CIV";
 		m_bWaitForSpawnPoints = true;
-		m_fDeployMenuOpenDelay = 4.0;
+		// 0 = sem delay. Auto-spawn dispara antes do menu vanilla ter chance de abrir client-side.
+		m_fDeployMenuOpenDelay = 0.0;
+
+		// Arma incap ticker (server-side). Roda no callqueue global; idempotente via flag.
+		if (!m_bBzIncapTickerArmed)
+		{
+			m_bBzIncapTickerArmed = true;
+			GetGame().GetCallqueue().CallLater(BZ_TickIncapKill, BZ_INCAP_CHECK_INTERVAL_MS, true);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
+	// Periodic scan: força morte de players INCAPACITATED há mais de BZ_INCAP_FORCE_KILL_MS.
+	// Vanilla não dispara EntityLost em INCAP (só DEAD/destroyed) → player fica caído sem
+	// respawn. Mata via damage manager pra disparar OnPlayerKilled → OnPlayerEntityLost_S →
+	// auto-spawn ciclo normal.
+	protected void BZ_TickIncapKill()
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		array<int> ids = {};
+		pm.GetPlayers(ids);
+		int nowMs = System.GetTickCount();
+
+		foreach (int pid : ids)
+		{
+			if (pid <= 0)
+				continue;
+
+			IEntity ent = pm.GetPlayerControlledEntity(pid);
+			if (!ent)
+			{
+				m_mBzIncapStartTime.Remove(pid);
+				continue;
+			}
+
+			CharacterControllerComponent cc = CharacterControllerComponent.Cast(ent.FindComponent(CharacterControllerComponent));
+			if (!cc)
+			{
+				m_mBzIncapStartTime.Remove(pid);
+				continue;
+			}
+
+			ECharacterLifeState state = cc.GetLifeState();
+
+			// DIAG: log estado quando player tem HP baixo OU não-ALIVE, ajuda rastrear bug
+			// "fica caído sem respawn". Health também útil.
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(ent);
+			float hp = -1;
+			bool destroyed = false;
+			if (dmg)
+			{
+				hp = dmg.GetHealth();
+				destroyed = dmg.IsDestroyed();
+			}
+
+			// SÓ INCAPACITATED é stuck. DEAD = ok (auto-spawn vai tratar via EntityLost).
+			// DEAD-with-entity-not-deleted é estado transiente entre death → spawn novo —
+			// matar nesse momento mata o spawn novo. Evitar.
+			if (state != ECharacterLifeState.INCAPACITATED)
+			{
+				m_mBzIncapStartTime.Remove(pid);
+				continue;
+			}
+
+			// DIAG: só quando INCAP confirmado (não flooda log).
+			Print(string.Format("[BrasilZ][IncapKill] DIAG Player %1 INCAP HP=%2 destroyed=%3", pid, hp, destroyed), LogLevel.NORMAL);
+
+			// Player INCAP — registra start ou checa timeout.
+			int startTime;
+			if (!m_mBzIncapStartTime.Find(pid, startTime))
+			{
+				m_mBzIncapStartTime.Set(pid, nowMs);
+				Print(string.Format("[BrasilZ][IncapKill] Player %1 INCAP detectado, timer iniciado (force kill em %2ms).", pid, BZ_INCAP_FORCE_KILL_MS), LogLevel.NORMAL);
+				continue;
+			}
+
+			int elapsedMs = nowMs - startTime;
+			if (elapsedMs < BZ_INCAP_FORCE_KILL_MS)
+				continue;
+
+			// Timeout — força morte via SCR_CharacterDamageManagerComponent.Kill.
+			SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(dmg);
+			if (charDmg)
+			{
+				charDmg.Kill(Instigator.CreateInstigator(null));
+				Print(string.Format("[BrasilZ][IncapKill] Player %1 stuck %2ms — Kill() via SCR_CharacterDamageManager.", pid, BZ_INCAP_FORCE_KILL_MS), LogLevel.WARNING);
+
+				// Backstop: se Kill() não disparar EntityLost em 5s, deleta entity direto via Rpl.
+				GetGame().GetCallqueue().CallLater(BZ_ForceDeleteEntityIfStuck, 5000, false, pid, ent);
+			}
+			else
+			{
+				Print(string.Format("[BrasilZ][IncapKill] Player %1 — SCR_CharacterDamageManagerComponent não encontrado, force delete direto.", pid), LogLevel.WARNING);
+				BZ_ForceDeleteEntityIfStuck(pid, ent);
+			}
+
+			m_mBzIncapStartTime.Remove(pid);
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Backstop: se SCR_CharacterDamageManagerComponent.Kill não disparar EntityLost por algum
+	// motivo (engine bug, replication issue), força delete da entity via RplComponent.
+	protected void BZ_ForceDeleteEntityIfStuck(int pid, IEntity stuckEnt)
+	{
+		if (!stuckEnt || stuckEnt.IsDeleted())
+			return;
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		// Se player já tem char novo (auto-spawn deu certo), nada a fazer.
+		IEntity current = pm.GetPlayerControlledEntity(pid);
+		if (current && current != stuckEnt)
+		{
+			Print(string.Format("[BrasilZ][IncapKill] Player %1 — auto-spawn rodou, entity nova ativa (no force delete).", pid), LogLevel.NORMAL);
+			return;
+		}
+
+		// Entity ainda controlled OU mesma entity — força delete via Rpl.
+		RplComponent rpl = RplComponent.Cast(stuckEnt.FindComponent(RplComponent));
+		if (rpl)
+		{
+			RplComponent.DeleteRplEntity(stuckEnt, false);
+			Print(string.Format("[BrasilZ][IncapKill] Player %1 — Kill() falhou, DELETE RplEntity force.", pid), LogLevel.WARNING);
+		}
+		else
+		{
+			SCR_EntityHelper.DeleteEntityAndChildren(stuckEnt);
+			Print(string.Format("[BrasilZ][IncapKill] Player %1 — Kill() falhou, DeleteEntityAndChildren fallback.", pid), LogLevel.WARNING);
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Set faction CIV CEDO no register (padrão ReforgedZ_MenuSpawnLogic.OnPlayerRegistered_S
+	// linhas 47-57). Garante que faction está setada antes de qualquer DoSpawn_S ou check de menu.
 	override void OnPlayerRegistered_S(int playerId)
 	{
 		m_mPersistenceWaitTime.Remove(playerId);
+
+		// Aplica CIV faction imediato (m_sForcedFaction="CIV" no ctor).
+		Faction forcedFaction;
+		if (GetForcedFaction(forcedFaction))
+		{
+			PlayerController pc = GetGame().GetPlayerManager().GetPlayerController(playerId);
+			if (pc)
+			{
+				SCR_PlayerFactionAffiliationComponent pfa = SCR_PlayerFactionAffiliationComponent.Cast(pc.FindComponent(SCR_PlayerFactionAffiliationComponent));
+				if (pfa && pfa.GetAffiliatedFaction() != forcedFaction)
+				{
+					pfa.RequestFaction(forcedFaction);
+					Print(string.Format("[BrasilZ][AutoSpawn] Player %1 — faction setada para CIV em OnPlayerRegistered_S (early).", playerId), LogLevel.NORMAL);
+				}
+			}
+		}
+
 		super.OnPlayerRegistered_S(playerId);
+
+		if (BZ_AUTO_SPAWN_ENABLED)
+			GetGame().GetCallqueue().CallLater(BZ_AutoSpawnIfStillNoEntityOnConnect, BZ_CONNECT_AUTOSPAWN_CHECK_MS, false, playerId);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -227,9 +405,7 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 					finalReason = "NO_SAVE_DATA (first connection OR save missing)";
 			}
 			Print(string.Format("[BrasilZ][DeployMenuReason] Player %1 → menu | reason=%2 | delay=%3s", playerId, finalReason, m_fDeployMenuOpenDelay), LogLevel.WARNING);
-			// Forward with null result; vanilla branches on (result == null) to open the menu.
-			// Keep original statusCode — EPersistenceStatusCode enum has only OK in this SDK.
-			super.OnPlayerCharacterLoaded_S(statusCode, null, isLast, context);
+			BZ_RequestRandomSpawnAndVerify(playerId, finalReason);
 			return;
 		}
 
@@ -316,22 +492,20 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		Print(string.Format("[BrasilZ] Player %1 has progress at %2 → vanilla restores last position", playerId, player.GetOrigin()), LogLevel.NORMAL);
 		super.OnPlayerCharacterLoaded_S(statusCode, result, isLast, context);
 
-		// SPAWN PROTECTION for reconnect-with-progress.
-		// super.OnPlayerCharacterLoaded_S triggers async PossessSpawnData → the character is
-		// not fully bound to the PlayerController in the same frame. Defer 500ms so the bind
-		// completes before we toggle damage handling.
-		GetGame().GetCallqueue().CallLater(BZ_ApplySpawnProtectionAfterPossess, 500, false, player, playerId);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Deferred spawn protection apply. Called 500ms after super.OnPlayerCharacterLoaded_S
-	// to give vanilla possess time to complete. Identical effect to direct apply but
-	// avoids race with PlayerController bind.
-	protected void BZ_ApplySpawnProtectionAfterPossess(IEntity character, int playerId)
-	{
-		if (!character || character.IsDeleted())
-			return;
-		BZ_SpawnProtection.Apply(character, playerId);
+		// SPAWN PROTECTION DISABLED on reconnect-with-progress.
+		//
+		// Original intent: 15s damage immunity covering weapon-load races, spawn-camping, etc.
+		// Problem: EnableDamageHandling(false) on a char that has a persisted weapon corrupts
+		// the WeaponManager + ActionsManager bindings. Players reported reload/inspect actions
+		// permanently broken after reconnect. The toggle false→true triggers vanilla's internal
+		// action-availability recheck out of sync with the weapon attachment replication, leaving
+		// a stale "no action available" state on the equipped weapon.
+		//
+		// Fresh deploy-menu spawns (PostProcessSpawnedPlayer in BZ_SpawnPointSpawnHandlerComponent)
+		// still get SpawnProtection — those have starter loadout applied via CallLater 250/1250/3000
+		// and the weapon binding completes AFTER the protection toggles, avoiding the race.
+		//
+		// To re-enable selectively: only apply if char has no equipped weapon at restore time.
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -369,11 +543,319 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 				lostContext = "controlled_entity_already_null (deleted between kill and entity-lost event)";
 			}
 		}
-		Print(string.Format("[BrasilZ][EntityLost] Player %1 lost entity | %2 | deploy menu in %3s", playerId, lostContext, m_fDeployMenuOpenDelay), LogLevel.WARNING);
-		Print(string.Format("[BrasilZ][DeployMenuReason] Player %1 → menu | reason=ENTITY_LOST_MID_GAME (killed/damaged/destroyed during play) | %2", playerId, lostContext), LogLevel.WARNING);
+		Print(string.Format("[BrasilZ][EntityLost] Player %1 lost entity | %2 | auto-spawn flow active", playerId, lostContext), LogLevel.WARNING);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 entity lost, no deploy menu | %2", playerId, lostContext), LogLevel.WARNING);
+
+		if (BZ_AUTO_SPAWN_ENABLED)
+		{
+			if (s_aBzDeathRespawnPending.Contains(playerId))
+			{
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 entity lost found stale random respawn pending - resetting and scheduling fresh respawn.", playerId), LogLevel.WARNING);
+				BZ_ClearDeathRespawnState(playerId);
+			}
+
+			// Let vanilla move the controller into respawn-ready state. The deploy menu UI
+			// stays blocked by BZ_DeployMenuBlocker, but RequestSpawn needs this setup.
+			super.OnPlayerEntityLost_S(playerId);
+
+			s_aBzDeathRespawnPending.Insert(playerId);
+			// 1000ms delay — 100ms era curto demais, engine ainda processando death cleanup
+			// (decouple, replication). Delay maior dá tempo de PlayerController despossuir
+			// o corpo morto antes do RequestSpawn tentar possuir o char novo.
+			GetGame().GetCallqueue().CallLater(BZ_AutoSpawnAfterDeath, BZ_DEATH_AUTOSPAWN_DELAY_MS, false, playerId);
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 entity lost - random respawn scheduled in %2ms.", playerId, BZ_DEATH_AUTOSPAWN_DELAY_MS), LogLevel.NORMAL);
+			return;
+		}
+
 		super.OnPlayerEntityLost_S(playerId);
 	}
 
+	//------------------------------------------------------------------------------------------------
+	// Callback do auto-respawn pós-morte. Chama DoSpawn_S diretamente — override já cuida do
+	// resto (faction CIV, BZ_SpawnPoint random, loadout, RequestSpawn).
+	protected void BZ_AutoSpawnAfterDeath(int playerId)
+	{
+		// Verifica se player ainda existe (não disconnected entre death e callback).
+		PlayerController pc = GetGame().GetPlayerManager().GetPlayerController(playerId);
+		if (!pc)
+		{
+			s_mBzDeathRespawnRetries.Remove(playerId);
+			s_mBzDeathRespawnVerifyRetries.Remove(playerId);
+			s_aBzDeathRespawnPending.Remove(playerId);
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 disconnected before delayed random respawn, abort.", playerId), LogLevel.NORMAL);
+			return;
+		}
+
+		// Verifica se player tem char VIVO (não corpo decoupled). Após morte, vanilla mantém
+		// PlayerControlledEntity mapping pro corpo destroyed até cleanup completar — não
+		// devemos skip nesse caso, é exatamente o cenário que queremos auto-respawn.
+		IEntity controlled = GetGame().GetPlayerManager().GetPlayerControlledEntity(playerId);
+		if (controlled)
+		{
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(controlled);
+			bool alive = dmg && !dmg.IsDestroyed() && dmg.GetHealth() > 0;
+			if (alive)
+			{
+				s_mBzDeathRespawnRetries.Remove(playerId);
+				s_mBzDeathRespawnVerifyRetries.Remove(playerId);
+				s_aBzDeathRespawnPending.Remove(playerId);
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 already has alive character, skip delayed random respawn.", playerId), LogLevel.NORMAL);
+				return;
+			}
+
+			int retryCount = s_mBzDeathRespawnRetries.Get(playerId) + 1;
+			s_mBzDeathRespawnRetries.Set(playerId, retryCount);
+			if (retryCount >= BZ_DEATH_AUTOSPAWN_MAX_RETRIES)
+			{
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 still controls dead character after %2 retries - deleting stale controlled corpse before respawn.", playerId, retryCount), LogLevel.WARNING);
+				BZ_DeleteStaleControlledCorpse(controlled, playerId);
+				GetGame().GetCallqueue().CallLater(BZ_AutoSpawnAfterDeath, 100, false, playerId);
+				return;
+			}
+
+			GetGame().GetCallqueue().CallLater(BZ_AutoSpawnAfterDeath, BZ_DEATH_AUTOSPAWN_RETRY_MS, false, playerId);
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 still controls dead character - retry %2/%3 in %4ms.", playerId, retryCount, BZ_DEATH_AUTOSPAWN_MAX_RETRIES, BZ_DEATH_AUTOSPAWN_RETRY_MS), LogLevel.NORMAL);
+			return;
+		}
+
+		s_mBzDeathRespawnRetries.Remove(playerId);
+		s_mBzDeathRespawnVerifyRetries.Set(playerId, 0);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - executing delayed random respawn.", playerId), LogLevel.NORMAL);
+		DoSpawn_S(playerId);
+		GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+		GetGame().GetCallqueue().CallLater(BZ_ClearDeathRespawnPending, BZ_DEATH_AUTOSPAWN_PENDING_CLEAR_MS + BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_ClearDeathRespawnPending(int playerId)
+	{
+		s_aBzDeathRespawnPending.Remove(playerId);
+		s_mBzDeathRespawnVerifyRetries.Remove(playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	void BZ_ClearDeathRespawnState(int playerId)
+	{
+		BZ_ClearDeathRespawnStateStatic(playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	static void BZ_ClearDeathRespawnStateStatic(int playerId)
+	{
+		s_aBzDeathRespawnPending.Remove(playerId);
+		s_mBzDeathRespawnRetries.Remove(playerId);
+		s_mBzDeathRespawnVerifyRetries.Remove(playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	void BZ_ForceRandomRespawnFromButton(int playerId)
+	{
+		if (!Replication.IsServer())
+			return;
+
+		BZ_ClearDeathRespawnState(playerId);
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		PlayerController pc = pm.GetPlayerController(playerId);
+		if (!pc)
+			return;
+
+		IEntity controlled = pm.GetPlayerControlledEntity(playerId);
+		if (controlled)
+		{
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(controlled);
+			bool alive = dmg && !dmg.IsDestroyed() && dmg.GetHealth() > 0;
+			if (alive)
+			{
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 force respawn ignored - alive character still controlled.", playerId), LogLevel.NORMAL);
+				return;
+			}
+
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 force respawn deleting stale controlled corpse before spawn.", playerId), LogLevel.WARNING);
+			BZ_DeleteStaleControlledCorpse(controlled, playerId);
+		}
+
+		s_aBzDeathRespawnPending.Insert(playerId);
+		s_mBzDeathRespawnVerifyRetries.Set(playerId, 0);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - force random respawn requested by pause button.", playerId), LogLevel.WARNING);
+		DoSpawn_S(playerId);
+		GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+		GetGame().GetCallqueue().CallLater(BZ_ClearDeathRespawnPending, BZ_DEATH_AUTOSPAWN_PENDING_CLEAR_MS + BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_RequestRandomSpawnAndVerify(int playerId, string reason)
+	{
+		if (s_aBzDeathRespawnPending.Contains(playerId))
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 random spawn request ignored - spawn already pending (%2).", playerId, reason), LogLevel.NORMAL);
+			return;
+		}
+
+		s_aBzDeathRespawnPending.Insert(playerId);
+		s_mBzDeathRespawnRetries.Remove(playerId);
+		s_mBzDeathRespawnVerifyRetries.Set(playerId, 0);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - random spawn requested by recovery path (%2).", playerId, reason), LogLevel.WARNING);
+		DoSpawn_S(playerId);
+		GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+		GetGame().GetCallqueue().CallLater(BZ_ClearDeathRespawnPending, BZ_DEATH_AUTOSPAWN_PENDING_CLEAR_MS + BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_AutoSpawnIfStillNoEntityOnConnect(int playerId)
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		PlayerController pc = pm.GetPlayerController(playerId);
+		if (!pc)
+			return;
+
+		IEntity controlled = pm.GetPlayerControlledEntity(playerId);
+		if (controlled)
+		{
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(controlled);
+			bool alive = dmg && !dmg.IsDestroyed() && dmg.GetHealth() > 0;
+			if (alive)
+			{
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 connect rescue skipped - alive controlled entity exists.", playerId), LogLevel.NORMAL);
+				return;
+			}
+
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 connect rescue found dead controlled entity - deleting before spawn.", playerId), LogLevel.WARNING);
+			BZ_DeleteStaleControlledCorpse(controlled, playerId);
+		}
+
+		BZ_RequestRandomSpawnAndVerify(playerId, "CONNECT_NO_ALIVE_CONTROLLED_ENTITY");
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_VerifyDeathRespawnCompleted(int playerId)
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		PlayerController pc = pm.GetPlayerController(playerId);
+		if (!pc)
+		{
+			BZ_ClearDeathRespawnPending(playerId);
+			return;
+		}
+
+		IEntity controlled = pm.GetPlayerControlledEntity(playerId);
+		if (controlled)
+		{
+			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(controlled);
+			bool alive = dmg && !dmg.IsDestroyed() && dmg.GetHealth() > 0;
+			if (alive)
+			{
+				s_mBzDeathRespawnRetries.Remove(playerId);
+				BZ_ClearDeathRespawnPending(playerId);
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 respawn verified with alive controlled entity.", playerId), LogLevel.NORMAL);
+				return;
+			}
+
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 respawn verify found dead controlled entity - deleting before retry.", playerId), LogLevel.WARNING);
+			BZ_DeleteStaleControlledCorpse(controlled, playerId);
+		}
+
+		int verifyCount = s_mBzDeathRespawnVerifyRetries.Get(playerId) + 1;
+		s_mBzDeathRespawnVerifyRetries.Set(playerId, verifyCount);
+		if (verifyCount > BZ_DEATH_AUTOSPAWN_VERIFY_MAX)
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 respawn verify failed after %2 retries - clearing pending so next death/connect can recover.", playerId, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.ERROR);
+			BZ_ClearDeathRespawnPending(playerId);
+			return;
+		}
+
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 has no alive controlled entity after respawn request - retry spawn verify %2/%3.", playerId, verifyCount, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.WARNING);
+		DoSpawn_S(playerId);
+		GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_DeleteStaleControlledCorpse(IEntity corpse, int playerId)
+	{
+		if (!corpse || corpse.IsDeleted())
+			return;
+
+		RplComponent rpl = RplComponent.Cast(corpse.FindComponent(RplComponent));
+		if (rpl)
+		{
+			RplComponent.DeleteRplEntity(corpse, false);
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 stale controlled corpse deleted via RplComponent.", playerId), LogLevel.WARNING);
+			return;
+		}
+
+		SCR_EntityHelper.DeleteEntityAndChildren(corpse);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 stale controlled corpse deleted via EntityHelper fallback.", playerId), LogLevel.WARNING);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// AUTO-SPAWN OVERRIDE (skip deploy menu).
+	// Vanilla DoSpawn_S calls NotifyReadyForSpawn_S which opens deploy menu on client.
+	// Override: auto-spawn directamente em random BZ_SpawnPoint com faction CIV + loadout.
+	// Cada chamada (init spawn + respawn pós-morte) é interceptada → sem menu.
+	//
+	// Fallback: se BZ_SpawnPoint não encontrar ponto, ou loadout faltar, cai pra vanilla.
+	override protected void DoSpawn_S(int playerId)
+	{
+		if (!BZ_AUTO_SPAWN_ENABLED)
+		{
+			super.DoSpawn_S(playerId);
+			return;
+		}
+
+		Faction forcedFaction;
+		if (GetForcedFaction(forcedFaction))
+		{
+			SCR_PlayerFactionAffiliationComponent pfa = GetPlayerFactionComponent_S(playerId);
+			if (pfa)
+				pfa.RequestFaction(forcedFaction);
+		}
+
+		SCR_PlayerFactionAffiliationComponent factionComp = GetPlayerFactionComponent_S(playerId);
+		Faction faction;
+		if (factionComp)
+			faction = factionComp.GetAffiliatedFaction();
+		if (!faction && forcedFaction)
+			faction = forcedFaction;
+
+		if (!faction)
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - sem faction setada, abortando auto-spawn para evitar deploy menu.", playerId), LogLevel.WARNING);
+			return;
+		}
+
+		BZ_RespawnSystemComponent bzRespawn = BZ_RespawnSystemComponent.Cast(m_RespawnSystem);
+		if (!bzRespawn)
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - BZ_RespawnSystemComponent ausente, abortando auto-spawn.", playerId), LogLevel.WARNING);
+			return;
+		}
+
+		ResourceName prefab = bzRespawn.GetDefaultCharacterPrefab();
+		if (prefab.IsEmpty())
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - sem prefab de personagem configurado, abortando auto-spawn.", playerId), LogLevel.WARNING);
+			return;
+		}
+
+		BZ_SpawnPoint spawnPoint = BZ_SpawnPoint.GetRandomSpawnPoint();
+		if (!spawnPoint)
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 - sem BZ_SpawnPoint disponivel, abortando auto-spawn.", playerId), LogLevel.WARNING);
+			return;
+		}
+
+		bzRespawn.RequestSpawnAtPointWithPrefab(playerId, prefab, spawnPoint);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 -> random spawn requested at %2 (faction=%3, prefab=%4).", playerId, spawnPoint.GetSpawnPointName(), faction.GetFactionKey(), prefab), LogLevel.NORMAL);
+	}
 	//------------------------------------------------------------------------------------------------
 	// Deferred surface lift for players who disconnected while submerged. Moves the entity
 	// to the explicit surface position (X/Z preserved, Y forced above the waterline) and
@@ -416,6 +898,21 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		const float UNDERGROUND_OFFSET = 1000.0;
 		vector liftPos = buriedPos;
 		liftPos[1] = liftPos[1] + UNDERGROUND_OFFSET;
+
+		// DEEP-VOID RECOVERY for legacy saves corrupted by the old sink-to-Y=-3000 BootScan.
+		// Player saves got persisted at Y=-3000 before that bug was patched. Standard
+		// +1000 lift leaves Y=-2000 still underground. Force-lift to terrain surface.
+		const float BZ_DEEP_VOID_RECOVERY_Y = -1500.0;
+		if (buriedPos[1] < BZ_DEEP_VOID_RECOVERY_Y)
+		{
+			BaseWorld bw = GetGame().GetWorld();
+			if (bw)
+			{
+				float terrainY = bw.GetSurfaceY(buriedPos[0], buriedPos[2]);
+				liftPos[1] = terrainY + 2.0;
+				Print(string.Format("[BrasilZ][SpawnLoad] DEEP-VOID RECOVERY — buried Y=%1 (< %2), forcing lift to surface Y=%3 + 2.0 clearance", buriedPos[1], BZ_DEEP_VOID_RECOVERY_Y, terrainY), LogLevel.WARNING);
+			}
+		}
 
 		BaseGameEntity bgEntity = BaseGameEntity.Cast(entity);
 		if (bgEntity)

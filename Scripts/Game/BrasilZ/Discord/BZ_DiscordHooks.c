@@ -161,6 +161,104 @@ void BZ_DiscordHooks_LogShopTransaction(IEntity player, ADM_ShopMerchandise merc
 }
 
 // ============================================================================
+// Balance snapshot cache
+// ----------------------------------------------------------------------------
+// PROBLEM: OnPlayerKilled fires AFTER engine drop-on-death dispatches inventory
+// items (backpack containing the wallet drops to the ground). At kill time the
+// inventory query returns 0 wallets — Discord embed showed "$0 / $0 / $0" for
+// the victim even when they had cash.
+//
+// SOLUTION: cache balance per playerId at a regular interval (15s) while the
+// player is alive. OnPlayerKilled uses the cached value (last known live
+// balance) as the snapshot. Live re-query still runs as best-effort but cached
+// value is preferred when > 0.
+// ============================================================================
+class BZ_BalanceCacheEntry
+{
+	int m_iWallet;
+	int m_iLoose;
+	int m_iTotal;
+	int m_iSampledAtMs;
+}
+
+class BZ_DiscordBalanceCache
+{
+	protected static ref map<int, ref BZ_BalanceCacheEntry> s_mCache = new map<int, ref BZ_BalanceCacheEntry>();
+	protected static const int BZ_BALANCE_SAMPLE_INTERVAL_MS = 15000; // 15s
+	protected static bool s_bTickerArmed = false;
+
+	//------------------------------------------------------------------------------------------------
+	static void ArmTicker()
+	{
+		if (s_bTickerArmed)
+			return;
+		s_bTickerArmed = true;
+		GetGame().GetCallqueue().CallLater(Tick, BZ_BALANCE_SAMPLE_INTERVAL_MS, true);
+		Print("[BrasilZ][DiscordCache] Balance sampler armed every 15s.", LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	static void Tick()
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		array<int> ids = {};
+		pm.GetPlayers(ids);
+		foreach (int pid : ids)
+		{
+			if (pid <= 0)
+				continue;
+			IEntity ent = pm.GetPlayerControlledEntity(pid);
+			if (!ent)
+				continue;
+
+			int wallet, loose, total;
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(ent, wallet, loose, total);
+
+			BZ_BalanceCacheEntry entry = s_mCache.Get(pid);
+			if (!entry)
+			{
+				entry = new BZ_BalanceCacheEntry();
+				s_mCache.Set(pid, entry);
+			}
+			entry.m_iWallet = wallet;
+			entry.m_iLoose = loose;
+			entry.m_iTotal = total;
+			entry.m_iSampledAtMs = System.GetTickCount();
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Returns last cached balance for the player. Out params zero if no entry.
+	// ageMs returns time since last sample (-1 if no entry).
+	static void GetCached(int playerId, out int wallet, out int loose, out int total, out int ageMs)
+	{
+		wallet = 0;
+		loose = 0;
+		total = 0;
+		ageMs = -1;
+		BZ_BalanceCacheEntry entry = s_mCache.Get(playerId);
+		if (!entry)
+			return;
+		wallet = entry.m_iWallet;
+		loose = entry.m_iLoose;
+		total = entry.m_iTotal;
+		ageMs = System.GetTickCount() - entry.m_iSampledAtMs;
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Remove cache entry on disconnect to avoid stale data on player rejoin
+	// with same playerId.
+	static void Clear(int playerId)
+	{
+		if (s_mCache.Contains(playerId))
+			s_mCache.Remove(playerId);
+	}
+}
+
+// ============================================================================
 // Player lifecycle hooks (connect / disconnect / kill)
 // Attached to BZ_GameMode so we only fire on the BrasilZ game mode, not in
 // editor or other modes.
@@ -168,9 +266,16 @@ void BZ_DiscordHooks_LogShopTransaction(IEntity player, ADM_ShopMerchandise merc
 modded class SCR_BaseGameMode
 {
 	//------------------------------------------------------------------------------------------------
+	// NOTE: EOnInit override is in BZ_GameMode.c. Cannot declare a second one here (compile
+	// fails on duplicate override of same merged modded class). Ticker arms lazily from
+	// OnPlayerConnected — first connect triggers ArmTicker (idempotent via s_bTickerArmed).
 	override void OnPlayerConnected(int playerId)
 	{
 		super.OnPlayerConnected(playerId);
+
+		// Lazy-arm balance cache ticker on first server-side connect. Idempotent.
+		if (Replication.IsServer())
+			BZ_DiscordBalanceCache.ArmTicker();
 
 		if (!Replication.IsServer() || !BZ_DiscordConfig.LOG_CONNECT)
 			return;
@@ -280,6 +385,10 @@ modded class SCR_BaseGameMode
 
 		super.OnPlayerDisconnected(playerId, cause, timeout);
 
+		// Drop cached balance — playerId may be reused for a different player on next
+		// connect, stale cache could leak into another player's death event.
+		BZ_DiscordBalanceCache.Clear(playerId);
+
 		if (!name.IsEmpty())
 		{
 			ref array<ref BZ_DiscordField> fields = new array<ref BZ_DiscordField>();
@@ -299,16 +408,41 @@ modded class SCR_BaseGameMode
 	//------------------------------------------------------------------------------------------------
 	override void OnPlayerKilled(int playerId, IEntity playerEntity, IEntity killerEntity, notnull Instigator killer)
 	{
-		// CAPTURE BALANCE FIRST — before super.OnPlayerKilled runs BZ_GameMode.OnPlayerKilled
-		// which calls BZ_DecoupleDeadBody. Decouple changes persistence ownership and vanilla
-		// death also drops slotted items (backpack with wallet inside). After super, the
-		// wallet is no longer reachable via the character's inventory hierarchy, so we'd
-		// log $0/$0/$0. Snapshot the balance synchronously at the start of the kill event.
+		// CAPTURE BALANCE FIRST — engine drops the dead body's backpack (which holds the
+		// wallet) BEFORE OnPlayerKilled fires. By the time we get here the live inventory
+		// query returns 0 wallets and Discord showed $0 for the victim even with cash.
+		//
+		// Strategy: prefer the cached balance (sampled every 15s by BZ_DiscordBalanceCache).
+		// Cache holds the last KNOWN-ALIVE balance, which is the right value to report at
+		// kill time. Fall back to live snapshot only if cache is empty (player died < 15s
+		// after connect) AND live > 0 (rare — drop usually already happened).
 		int preVictimWallet = 0;
 		int preVictimLoose = 0;
 		int preVictimTotal = 0;
+		int cachedWallet = 0, cachedLoose = 0, cachedTotal = 0, cacheAgeMs = -1;
+		BZ_DiscordBalanceCache.GetCached(playerId, cachedWallet, cachedLoose, cachedTotal, cacheAgeMs);
+
+		int liveWallet = 0, liveLoose = 0, liveTotal = 0;
 		if (playerEntity)
-			BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, preVictimWallet, preVictimLoose, preVictimTotal);
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, liveWallet, liveLoose, liveTotal);
+
+		// Use cache if present, else live. If both present and cache total > live total,
+		// trust cache (engine likely already dropped items).
+		if (cacheAgeMs >= 0 && cachedTotal >= liveTotal)
+		{
+			preVictimWallet = cachedWallet;
+			preVictimLoose = cachedLoose;
+			preVictimTotal = cachedTotal;
+		}
+		else
+		{
+			preVictimWallet = liveWallet;
+			preVictimLoose = liveLoose;
+			preVictimTotal = liveTotal;
+		}
+
+		Print(string.Format("[BrasilZ][Killed] Victim balance snapshot: cache=$%1 (age=%2ms) live=$%3 → using=$%4",
+			cachedTotal, cacheAgeMs, liveTotal, preVictimTotal), LogLevel.NORMAL);
 
 		// CAPTURE METABOLISM state pre-death. FMMetabolism2 applies fatal damage via
 		// SetHealthScaled(0) without Instigator — vanilla OnPlayerKilled then fires with
@@ -340,15 +474,41 @@ modded class SCR_BaseGameMode
 
 		// Also snapshot KILLER balance pre-loot. If PvP, killer may walk over and pick up
 		// victim's wallet/notes within seconds — but at the EXACT moment of kill we want to
-		// show what the killer was carrying BEFORE looting. Resolve killer entity first.
+		// show what the killer was carrying BEFORE looting. Killer is alive at this point so
+		// live query usually works, but use cache if available (more reliable across edge
+		// cases like killer also taking lethal damage in the same frame).
 		int preKillerWallet = 0;
 		int preKillerLoose = 0;
 		int preKillerTotal = 0;
 		IEntity preKillerEnt = null;
 		if (killer)
 			preKillerEnt = killer.GetInstigatorEntity();
+
+		int killerLiveW = 0, killerLiveL = 0, killerLiveT = 0;
 		if (preKillerEnt && preKillerEnt != playerEntity)
-			BZ_DiscordWebhook.GetPlayerBalanceDetailed(preKillerEnt, preKillerWallet, preKillerLoose, preKillerTotal);
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(preKillerEnt, killerLiveW, killerLiveL, killerLiveT);
+
+		PlayerManager pmKiller = GetGame().GetPlayerManager();
+		int killerPidEarly = 0;
+		if (pmKiller && preKillerEnt)
+			killerPidEarly = pmKiller.GetPlayerIdFromControlledEntity(preKillerEnt);
+
+		int killerCacheW = 0, killerCacheL = 0, killerCacheT = 0, killerCacheAge = -1;
+		if (killerPidEarly > 0)
+			BZ_DiscordBalanceCache.GetCached(killerPidEarly, killerCacheW, killerCacheL, killerCacheT, killerCacheAge);
+
+		if (killerCacheAge >= 0 && killerCacheT >= killerLiveT)
+		{
+			preKillerWallet = killerCacheW;
+			preKillerLoose = killerCacheL;
+			preKillerTotal = killerCacheT;
+		}
+		else
+		{
+			preKillerWallet = killerLiveW;
+			preKillerLoose = killerLiveL;
+			preKillerTotal = killerLiveT;
+		}
 
 		super.OnPlayerKilled(playerId, playerEntity, killerEntity, killer);
 

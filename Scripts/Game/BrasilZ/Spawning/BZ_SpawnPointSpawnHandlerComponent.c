@@ -102,19 +102,32 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			// for reconnects — possessing a saved character does not mean the dead flag should
 			// drop. The original death flag check already rejected those before reaching here.
 			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity && !SCR_PossessSpawnData.Cast(data))
-				ClearDeathFlagForFreshSpawn(spawnedEntity);
-
-			// Spawn protection for vanilla flows too:
-			//   - VANILLA_SPAWN_POINT (deploy menu) → new char, needs 15s grace
-			//   - RECONNECT (possess) → player just loaded, might be bleeding/at-risk
-			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity)
 			{
-				PlayerManager pmProt = GetGame().GetPlayerManager();
-				int protPlayerId = 0;
-				if (pmProt)
-					protPlayerId = pmProt.GetPlayerIdFromControlledEntity(spawnedEntity);
-				BZ_SpawnProtection.Apply(spawnedEntity, protPlayerId);
+				if (SCR_SpawnPointSpawnData.Cast(data))
+				{
+					int vanillaPlayerId = BZ_ResolvePlayerIdFromSpawnedEntity(spawnedEntity);
+					PostProcessSpawnedPlayer(spawnedEntity, vanillaPlayerId);
+					GetGame().GetCallqueue().CallLater(ClearDeathFlagForFreshSpawn, 500, false, spawnedEntity);
+				}
+				else
+				{
+					ClearDeathFlagForFreshSpawn(spawnedEntity);
+				}
 			}
+
+			// SPAWN PROTECTION DISABLED — bug em BZ_SpawnProtection.Apply (linha 44):
+			// `CallQueue.Remove(BZ_DisableSpawnProtection)` matava callbacks de OUTROS
+			// players. P1 spawna → damage OFF + disable agendado. P2 spawna depois →
+			// Remove mata disable do P1 → P1 invencível pra sempre. Players reportaram
+			// "nao consigo matar ninguem". Removido até refactor (map per-playerId).
+			// if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity)
+			// {
+			//     PlayerManager pmProt = GetGame().GetPlayerManager();
+			//     int protPlayerId = 0;
+			//     if (pmProt)
+			//         protPlayerId = pmProt.GetPlayerIdFromControlledEntity(spawnedEntity);
+			//     BZ_SpawnProtection.Apply(spawnedEntity, protPlayerId);
+			// }
 
 			// Log post-vanilla spawn state.
 			if (vanillaResult == SCR_ESpawnResult.OK && spawnedEntity)
@@ -246,13 +259,10 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			}
 		}
 
-		// SPAWN PROTECTION — 15s damage immunity. Critical for new spawn:
-		//   * Char spawns in safezone or random spawn point, no exposure to threats
-		//   * BUT if BZ_StarterLoadout takes 3s to settle and zombies are nearby,
-		//     player can be hit during the loadout-apply window
-		//   * Bandits/other players camping spawn points cannot insta-kill
-		// Applied BEFORE starter loadout so damage is blocked during equipment setup.
-		BZ_SpawnProtection.Apply(spawnedEntity, playerId);
+		// SPAWN PROTECTION DISABLED — bug multi-player (vide comment no vanilla branch acima).
+		// CallQueue.Remove matava disable callbacks de outros players → invencibilidade
+		// permanente. Removido até refactor.
+		// BZ_SpawnProtection.Apply(spawnedEntity, playerId);
 
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 250, false, spawnedEntity);
 		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 1250, false, spawnedEntity);
@@ -266,6 +276,19 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		// No-op for groups: BZ_GroupsManagerComponent.OnPlayerRegistered + OnPlayerAuditSuccess
 		// already skip vanilla auto-assign. Player joins no group on spawn, but can opt in via
 		// the post-spawn group menu (M key) to create or join one.
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected int BZ_ResolvePlayerIdFromSpawnedEntity(IEntity spawnedEntity)
+	{
+		if (!spawnedEntity)
+			return 0;
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return 0;
+
+		return pm.GetPlayerIdFromControlledEntity(spawnedEntity);
 	}
 
 	//------------------------------------------------------------------------------------------------

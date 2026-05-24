@@ -1,0 +1,14 @@
+OverlayWidgetClass {
+ Name "BZRestartMsgListOverlay"
+ "Z Order" 100000
+ {
+  VerticalLayoutWidgetClass "{B7A1D3F4304C91A1}" {
+   Name "BZRestartMsgListVerticalLayout"
+   Slot OverlayWidgetSlot "{B7A1D3F4304C91A2}" {
+    HorizontalAlign 1
+    VerticalAlign 0
+    Padding 0 210 0 0
+   }
+  }
+ }
+}

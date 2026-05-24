@@ -45,6 +45,16 @@ class BZ_RespawnSystemComponent : SCR_RespawnSystemComponent
 		if (!Replication.IsServer())
 			return;
 
+		BZ_SpawnPoint spawnPoint = BZ_SpawnPoint.GetRandomSpawnPoint();
+		RequestSpawnAtPointWithPrefab(playerId, prefab, spawnPoint);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	void RequestSpawnAtPointWithPrefab(int playerId, ResourceName prefab, BZ_SpawnPoint spawnPoint)
+	{
+		if (!Replication.IsServer())
+			return;
+
 		PlayerManager playerManager = GetGame().GetPlayerManager();
 		if (!playerManager)
 			return;
@@ -60,7 +70,6 @@ class BZ_RespawnSystemComponent : SCR_RespawnSystemComponent
 			return;
 		}
 
-		BZ_SpawnPoint spawnPoint = BZ_SpawnPoint.GetRandomSpawnPoint();
 		if (!spawnPoint)
 		{
 			Print("[BrasilZ] No BZ_SpawnPoint found in world.", LogLevel.ERROR);
@@ -78,6 +87,7 @@ class BZ_RespawnSystemComponent : SCR_RespawnSystemComponent
 		spawnData.SetPlayerId(playerId);
 		spawnData.SetPrefab(prefab);
 		requestComponent.RequestRespawn(spawnData);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 RequestRespawn via SCR_SpawnRequestComponent spawnPoint=%2 prefab=%3", playerId, spawnPoint.GetSpawnPointName(), prefab), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -113,4 +123,5 @@ class BZ_RespawnSystemComponent : SCR_RespawnSystemComponent
 		spawnData.SetExplicitTransform(position, angles);
 		requestComponent.RequestRespawn(spawnData);
 	}
+
 }
