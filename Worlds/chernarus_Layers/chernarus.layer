@@ -46,6 +46,8 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
    m_iPlayableGroupFrequencyOffset 200
    m_iPlayableGroupFrequencyMax 44400
   }
+  BZ_MapMarkerManager "{B70500000000C001}" {
+  }
   BZ_RespawnSystemComponent "{56B2B4793051E7C9}" {
    components {
     BZ_SpawnPointSpawnHandlerComponent "{46FBAB76AC42072F}" {
@@ -88,6 +90,10 @@ SCR_BaseGameMode BrasilZ_GameMode2 : "{ECEEDB2D3737204B}Prefabs/Systems/Scenario
   }
   SCR_SupportStationManagerComponent "{695B5135602F8702}" {
   }
+  SCR_ReconnectSynchronizationComponent "{69730A2E43D068C2}" {
+  }
+  SCR_ReconnectComponent "{B70500000000C003}" {
+  }
   BZ_RestartComponent "{B70500000000B001}" {
    m_sRestartHoursUTC "0,4,8,12,16,20"
    m_iMinUptimeSec 7200
@@ -125,4 +131,7 @@ SCR_LoadoutManager BrasilZ_LoadoutManager {
    m_sAffiliatedFaction "CIV"
   }
  }
+}
+GenericEntity BrasilZ_BedManager : "{D1EC02E5F307FCCB}Prefabs/BaseBuilding/SleepingBag/BedManager.et" {
+ coords 4516.43 6.429 2506.473
 }

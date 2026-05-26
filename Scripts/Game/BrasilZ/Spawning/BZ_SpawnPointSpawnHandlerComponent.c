@@ -88,11 +88,6 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			SCR_ESpawnResult vanillaResult = super.SpawnEntity_S(requestComponent, data, spawnedEntity);
 
 			// CRITICAL: do NOT run PostProcessSpawnedPlayer for non-BZ spawn data.
-			// SCR_PossessSpawnData (reconnect) reaches this branch — running starter loadout
-			// would call StripMilitaryItems on the persisted character and break weapon
-			// state (reload/inspect actions stop working because the equipped weapon is removed).
-			// Starter loadout must only apply to fresh menu spawns (BZ_SpawnPointSpawnData below).
-
 			// BUT we DO need to clear the persisted death flag here. The vanilla deploy menu
 			// builds SCR_SpawnPointSpawnData (not BZ_*), so without this hook a player who died
 			// last session would loop forever: rejoin → death flag rejects char → menu opens →
@@ -264,12 +259,7 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		// permanente. Removido até refactor.
 		// BZ_SpawnProtection.Apply(spawnedEntity, playerId);
 
-		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 250, false, spawnedEntity);
-		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 1250, false, spawnedEntity);
-		GetGame().GetCallqueue().CallLater(BZ_StarterLoadout.Apply, 3000, false, spawnedEntity);
-
-		// Discord webhook: notify spawn event (after loadout applied so balance
-		// includes starter wallet). Delay 1.5s to let inventory replicate.
+		// Discord webhook: notify spawn event. Delay 1.5s to let prefab inventory replicate.
 		if (playerId > 0 && Replication.IsServer() && BZ_DiscordConfig.LOG_SPAWN)
 			GetGame().GetCallqueue().CallLater(BZ_NotifyDiscordSpawn, 1500, false, playerId, spawnedEntity);
 

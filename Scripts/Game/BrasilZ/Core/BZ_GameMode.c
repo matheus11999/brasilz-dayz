@@ -1,3 +1,4 @@
+// BrasilZ cache buster: 2026-05-25-bootscan-destroyed-vehicles
 // BrasilZ game-mode-level hooks injected into vanilla SCR_BaseGameMode.
 //
 // Why this is a modded class and not a stand-alone subclass:
@@ -57,6 +58,8 @@ modded class SCR_BaseGameMode : BaseGameMode
 	// progress on restart. Boot scan now wipes any leftover zombie chars from disk so save
 	// stays small. Live zombies also get SetPersistence(false) via BZ_BaconZombieTuning.
 	protected ref array<IEntity> m_aBzZombieResults;
+	// Veículos destruídos — limpa no boot pra não acumular no save.
+	protected ref array<IEntity> m_aBzDestroyedVehicleResults;
 	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
 	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
 
@@ -185,7 +188,12 @@ modded class SCR_BaseGameMode : BaseGameMode
 		//
 		// Mission AI wipe still runs below — DarcMissions entities aren't in the reconnect
 		// list and need explicit cleanup.
-		Print("[BrasilZ][BootScan] Player orphan scan SKIPPED — vanilla SCR_ReconnectComponent + BZ_ReconnectComponent audit-timeout handles disconnect cleanup. Mission AI wipe still runs below.", LogLevel.NORMAL);
+		// ORPHAN DELETION RE-ENABLED (2026-05-25): vanilla m_ReconnectPlayerList é
+		// in-memory + vazia no boot. Orphans carregados do save NUNCA entram nessa lista
+		// → audit timeout não dispara → órfão eterno. Boot scan precisa limpar
+		// orphans-do-save explicitamente. SessionStorage UUID preserva inventário/pos
+		// independente do delete da entity no mundo.
+		Print("[BrasilZ][BootScan] Player orphan scan ENABLED — save-loaded orphans não estão em m_ReconnectPlayerList, audit timeout não pega.", LogLevel.NORMAL);
 
 		BaseWorld world = GetGame().GetWorld();
 		if (!world)
@@ -198,16 +206,15 @@ modded class SCR_BaseGameMode : BaseGameMode
 		m_aBzMissionAiResults = new array<IEntity>();
 		m_aBzBikeResults = new array<IEntity>();
 		m_aBzZombieResults = new array<IEntity>();
+		m_aBzDestroyedVehicleResults = new array<IEntity>();
 		world.QueryEntitiesBySphere(vector.Zero, BZ_ORPHAN_SCAN_RADIUS, BZ_QueryCollectOrphanCandidate, null, EQueryEntitiesFlags.DYNAMIC);
 
-		// NOTE: m_aBzOrphanScanResults is populated by the query callback but we no longer
-		// iterate over it for deletion. Clearing here so the array doesn't hold stale refs.
-		int orphansSeenButSkipped = m_aBzOrphanScanResults.Count();
-		m_aBzOrphanScanResults.Clear();
-		Print(string.Format("[BrasilZ][BootScan] Saw %1 player orphan candidates — left intact (audit timeout will handle them).", orphansSeenButSkipped), LogLevel.NORMAL);
+		int orphansFound = m_aBzOrphanScanResults.Count();
+		Print(string.Format("[BrasilZ][BootScan] %1 player orphan candidates encontrados — iterando pra Save + Delete.", orphansFound), LogLevel.NORMAL);
 
 		PlayerManager pm = GetGame().GetPlayerManager();
 		int deleted = 0;
+		int deadCorpses = 0;  // skipped pra loot 30min
 		int wipedMissionAi = 0;
 		int wipedZombies = 0;
 
@@ -240,6 +247,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(character);
 			if (dmg && dmg.IsDestroyed())
 			{
+				deadCorpses++;
 				Print(string.Format("[BrasilZ][BootScan] Skip — corpse (destroyed) at %1, preserved for loot", entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
 			}
@@ -247,6 +255,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 			CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
 			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
 			{
+				deadCorpses++;
 				Print(string.Format("[BrasilZ][BootScan] Skip — lifeState=%1 at %2", typename.EnumToString(ECharacterLifeState, cc.GetLifeState()), entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
 			}
@@ -304,13 +313,27 @@ modded class SCR_BaseGameMode : BaseGameMode
 			// legit save data independently — reconnect uses that.
 			vector orphanPos = entity.GetOrigin();
 
-			// Stop persistence tracking first so engine doesn't autosave the entity
-			// during the delete window (would persist with stale GUID references).
+			// CRITICAL ORDER (matches ReforgedZ_ReconnectComponent.SaveAndRemoveCharacter):
+			// Save → ReleaseTracking → OverwriteLatestSave → DeleteRplEntity.
+			//
+			// IMPORTANTE: StopTracking() faz GARBAGE-COLLECT do inventário save (player perde
+			// progresso). Use ReleaseTracking() — só remove tracking, save preservado.
+			// Ver: RZ_BaseMission.c:406 "StopTracking on inventory items causes the persistence
+			// system to garbage-collect them."
 			SCR_PersistenceSystem orphanPersist = SCR_PersistenceSystem.GetByEntityWorld(entity);
 			if (orphanPersist && orphanPersist.GetState() == EPersistenceSystemState.ACTIVE)
 			{
-				orphanPersist.StopTracking(entity);
-				Print(string.Format("[BrasilZ][BootScan] StopTracking on orphan at %1 before delete", orphanPos), LogLevel.NORMAL);
+				orphanPersist.Save(entity, ESaveGameType.AUTO);
+				orphanPersist.ReleaseTracking(entity);
+				Print(string.Format("[BrasilZ][BootScan] Save + ReleaseTracking on orphan at %1 — SessionStorage UUID preservada.", orphanPos), LogLevel.NORMAL);
+
+				// Flush save to disk ANTES do delete pra garantir DB commit do Save() finalizar.
+				SaveGameManager saveManager = GetGame().GetSaveGameManager();
+				if (saveManager && saveManager.IsSavingPossible())
+				{
+					SCR_BaseGameMode.BZ_OverwriteLatestSave(saveManager);
+					Print(string.Format("[BrasilZ][BootScan] OverwriteLatestSave flushed for orphan at %1", orphanPos), LogLevel.NORMAL);
+				}
 			}
 
 			// Single-entity delete via Rpl (recursive=false). Keeps weapon/inventory
@@ -334,9 +357,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 		}
 
 		m_aBzOrphanScanResults = null;
-		// 'deleted' will always be 0 now because the player orphan scan is disabled (see top of method).
-		// SCR_ReconnectComponent audit timeout handles disconnected player cleanup.
-		Print("[BrasilZ][BootScan] Player orphan deletion phase SKIPPED (see ReforgedZ-pattern adoption). Dead corpses left for 30min loot via BZ_TickCorpseCleanup.", LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][BootScan] Player orphan deletion completo — %1 alive orphans deletados (Save + StopTracking + DeleteRplEntity). SessionStorage UUID preservada. Dead corpses left for 30min loot via BZ_TickCorpseCleanup.", deleted), LogLevel.NORMAL);
 
 		// Mission AI wipe pass — delete leftover bandit chars from interrupted missions.
 		foreach (IEntity missionAi : m_aBzMissionAiResults)
@@ -374,6 +395,15 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		m_aBzBikeResults = null;
 		Print(string.Format("[BrasilZ][BootScan] Deployable bike wipe complete - candidates=%1 deleted=%2.", bikeCandidates, wipedBikes), LogLevel.NORMAL);
+
+		// Discord webhook — resumo boot (envia sempre, mesmo zero)
+		// NOTA: zombieCandidates + wipedMissionAi populados depois nesse mesmo método.
+		// Construímos summary AGORA com placeholders, mas atualizamos depois via schedule.
+		// Simples: agenda envio Discord 1s depois (após zombie/mission wipe completar).
+		int summaryDeleted = deleted;
+		int summaryDeadCorpses = deadCorpses;
+		int summaryBikes = wipedBikes;
+		int summaryMissionAi = wipedMissionAi;
 		Print(string.Format("[BrasilZ][BootScan] Mission AI wipe complete - removed %1 leftover mission AI entities (factions: %2).", wipedMissionAi, s_aBzMissionEnemyFactionKeys), LogLevel.NORMAL);
 
 		// FIX (zombie WorldState bloat) — wipe leftover ambient zombies from previous session.
@@ -405,6 +435,29 @@ modded class SCR_BaseGameMode : BaseGameMode
 		m_aBzZombieResults = null;
 		Print(string.Format("[BrasilZ][BootScan] Zombie wipe complete - candidates=%1 deleted=%2 (factionless ambient zombies, prevents WorldState bloat).", zombieCandidates, wipedZombies), LogLevel.NORMAL);
 
+		// Destroyed vehicles wipe pass
+		int destVehCandidates = m_aBzDestroyedVehicleResults.Count();
+		int wipedDestVehicles = 0;
+		foreach (IEntity vehEnt : m_aBzDestroyedVehicleResults)
+		{
+			if (!vehEnt || vehEnt.IsDeleted())
+				continue;
+
+			SCR_PersistenceSystem vPersist = SCR_PersistenceSystem.GetByEntityWorld(vehEnt);
+			if (vPersist && vPersist.GetState() == EPersistenceSystemState.ACTIVE)
+				vPersist.StopTracking(vehEnt);
+
+			RplComponent vehRpl = RplComponent.Cast(vehEnt.FindComponent(RplComponent));
+			if (vehRpl)
+				RplComponent.DeleteRplEntity(vehEnt, false);
+			else
+				SCR_EntityHelper.DeleteEntityAndChildren(vehEnt);
+
+			wipedDestVehicles++;
+		}
+		m_aBzDestroyedVehicleResults = null;
+		Print(string.Format("[BrasilZ][BootScan] Destroyed vehicle wipe complete - candidates=%1 deleted=%2.", destVehCandidates, wipedDestVehicles), LogLevel.NORMAL);
+
 		if (wipedBikes > 0)
 		{
 			GetGame().GetCallqueue().CallLater(BZ_FlushSaveToDisk, 5000, false);
@@ -413,6 +466,21 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		int scanElapsedMs = System.GetTickCount() - scanStartTick;
 		Print(string.Format("[BrasilZ][BootScan] Total scan time: %1ms. Gated connects will now proceed.", scanElapsedMs), LogLevel.NORMAL);
+
+		// Discord webhook — resumo boot completo (todos counters prontos agora)
+		ref array<ref BZ_DiscordField> summaryFields = {};
+		summaryFields.Insert(new BZ_DiscordField("👤 Corpos vivos removidos", string.Format("%1", summaryDeleted)));
+		summaryFields.Insert(new BZ_DiscordField("💀 Corpos mortos preservados (loot 30min)", string.Format("%1", summaryDeadCorpses)));
+		summaryFields.Insert(new BZ_DiscordField("🚲 Bicicletas removidas", string.Format("%1", summaryBikes)));
+		summaryFields.Insert(new BZ_DiscordField("🧟 Zombies removidos", string.Format("%1", wipedZombies)));
+		summaryFields.Insert(new BZ_DiscordField("🪖 Mission AI removidos", string.Format("%1", summaryMissionAi)));
+		summaryFields.Insert(new BZ_DiscordField("💥 Veículos destruídos removidos", string.Format("%1", wipedDestVehicles)));
+		BZ_DiscordWebhook.Send(
+			"🔄 Servidor iniciado",
+			"Resumo da limpeza no boot:",
+			BZ_DiscordConfig.COLOR_BLUE,
+			summaryFields
+		);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -436,9 +504,22 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (prefab.IsEmpty())
 			return true;
 
-		if (prefab == "{3FDBFE7F1A1EB8F2}Prefabs/Vehicles/Wheeled/WW2_Bike/WW2_Bike_base.et")
+		if (prefab == "{3FDBFE7F1A1EB8F2}Prefabs/Vehicles/Wheeled/WW2_Bike/WW2_Bike_base.et"
+			|| prefab == "{7FC3F9F617C308B4}Prefabs/Vehicles/Wheeled/WW2_Bike_Deployable.et")
 		{
 			m_aBzBikeResults.Insert(entity);
+			return true;
+		}
+
+		// Veículos destruídos — qualquer Vehicle com damage manager destroyed.
+		// Filtro: entity é Vehicle (não ChimeraCharacter, não bike acima).
+		if (Vehicle.Cast(entity))
+		{
+			SCR_DamageManagerComponent vehDmg = SCR_DamageManagerComponent.Cast(entity.FindComponent(SCR_DamageManagerComponent));
+			if (vehDmg && vehDmg.IsDestroyed())
+			{
+				m_aBzDestroyedVehicleResults.Insert(entity);
+			}
 			return true;
 		}
 
@@ -940,6 +1021,27 @@ modded class SCR_BaseGameMode : BaseGameMode
 		m_mBzConnectGateRetries.Remove(playerId);
 		Print(string.Format("[BrasilZ][Connect] Player %1 forwarding to vanilla OnPlayerConnected", playerId), LogLevel.NORMAL);
 		super.OnPlayerConnected(playerId);
+
+		// Start bed-respawn flag tick on this player's controller. 3s delay ensures
+		// controller is fully initialized post-connect. Server-side only.
+		if (!BZ_IsProxy())
+			GetGame().GetCallqueue().CallLater(BZ_StartBedFlagTickForPlayer, 3000, false, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_StartBedFlagTickForPlayer(int playerId)
+	{
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+		PlayerController pc = pm.GetPlayerController(playerId);
+		if (!pc)
+			return;
+		SCR_PlayerController scrPc = SCR_PlayerController.Cast(pc);
+		if (!scrPc)
+			return;
+		scrPc.BZ_StartBedFlagTickIfNeeded();
+		Print(string.Format("[BrasilZ][BedRespawn] Started bed flag tick for player %1.", playerId), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------

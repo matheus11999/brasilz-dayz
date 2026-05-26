@@ -1,6 +1,5 @@
 // Rebuild marker: forces Workbench to detect source change and repackage the .pak.
-// Bump the comment whenever the published addon needs a refresh on disk.
-// Last bump: 2026-05-23 — AUTO-SPAWN override (skip deploy menu, random BZ_SpawnPoint).
+// Last bump: 2026-05-26 — IncapKill: só HP<=0 + preserva instigator (anti-SUICIDE bug).
 class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 {
 	protected static const int MAX_PERSISTENCE_ACTIVE_WAIT_MS = 30000;
@@ -110,7 +109,15 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 				continue;
 			}
 
-			// DIAG: só quando INCAP confirmado (não flooda log).
+			// SÓ MATAR INCAP COM HP <= 0 — player com HP > 0 pode se recuperar
+			// (bleed-out natural, revive amigo, etc). Skip force-kill se ainda tem vida.
+			if (hp > 0)
+			{
+				m_mBzIncapStartTime.Remove(pid);
+				continue;
+			}
+
+			// DIAG: só quando INCAP confirmado + HP zerado.
 			Print(string.Format("[BrasilZ][IncapKill] DIAG Player %1 INCAP HP=%2 destroyed=%3", pid, hp, destroyed), LogLevel.NORMAL);
 
 			// Player INCAP — registra start ou checa timeout.
@@ -130,7 +137,21 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			SCR_CharacterDamageManagerComponent charDmg = SCR_CharacterDamageManagerComponent.Cast(dmg);
 			if (charDmg)
 			{
-				charDmg.Kill(Instigator.CreateInstigator(null));
+				// PRESERVA INSTIGATOR original — busca último damage source pra evitar SUICIDE.
+				// Sem isso, Kill(null) marca categoria como SUICIDE no OnPlayerKilled.
+				Instigator lastInstigator = charDmg.GetInstigator();
+				if (!lastInstigator)
+				{
+					// Fallback: cria instigator vazio (mesmo comportamento antigo)
+					lastInstigator = Instigator.CreateInstigator(null);
+					Print(string.Format("[BrasilZ][IncapKill] Player %1 — sem instigator armazenado, fallback Kill(null) → marca SUICIDE", pid), LogLevel.WARNING);
+				}
+				else
+				{
+					Print(string.Format("[BrasilZ][IncapKill] Player %1 — usando último instigator pra preservar killer real.", pid), LogLevel.NORMAL);
+				}
+
+				charDmg.Kill(lastInstigator);
 				Print(string.Format("[BrasilZ][IncapKill] Player %1 stuck %2ms — Kill() via SCR_CharacterDamageManager.", pid, BZ_INCAP_FORCE_KILL_MS), LogLevel.WARNING);
 
 				// Backstop: se Kill() não disparar EntityLost em 5s, deleta entity direto via Rpl.
@@ -502,8 +523,7 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		// a stale "no action available" state on the equipped weapon.
 		//
 		// Fresh deploy-menu spawns (PostProcessSpawnedPlayer in BZ_SpawnPointSpawnHandlerComponent)
-		// still get SpawnProtection — those have starter loadout applied via CallLater 250/1250/3000
-		// and the weapon binding completes AFTER the protection toggles, avoiding the race.
+		// still get SpawnProtection with prefab inventory already initialized.
 		//
 		// To re-enable selectively: only apply if char has no equipped weapon at restore time.
 	}

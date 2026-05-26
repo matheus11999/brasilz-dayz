@@ -1,3 +1,4 @@
+// BrasilZ cache buster: 2026-05-25-unstuck-only-on-first-connect-not-respawn
 // BrasilZ: hide player body on disconnect by teleporting it 1000m underground.
 // Pattern adapted from FoggysSurvival. Old version used SetOrigin + SetHealthScaled and
 // corrupted weapon state on reconnect. This rewrite uses the engine Teleport() API (which
@@ -31,38 +32,369 @@ modded class SCR_PlayerController
 	// buried to -450 → -450 > -500 so lift was skipped → vanilla restored at -450 underwater.
 	protected static const float BZ_BURIED_SENTINEL_Y = -100.0;
 
+	// Estado tracking pra auto-unstuck movement detect
+	protected vector m_vBzSpawnStartPos;
+	protected bool m_bBzUnstuckFired;
+
 	//------------------------------------------------------------------------------------------------
 	override void OnControlledEntityChanged(IEntity from, IEntity to)
 	{
 		super.OnControlledEntityChanged(from, to);
 
+		// CLIENT-SIDE AUTO-UNSTUCK (2026-05-25): replica logic do mod
+		// ReloadandHealUnstuck (!unstuck command). Quando player ganha controle de char
+		// novo (from=null, to=char), agenda 2s pós-spawn pra rodar unstuck pattern:
+		// 1. SetStanceChange(STAND) — força stand up
+		// 2. TryEquipRightHandItem(null, EEquipTypeWeapon) — desequipa arma (break stuck anim)
+		// 3. SetOrigin(pos + Y+0.5) — nudge anti-clipping
+		// User reportou que !unstuck manual corrige weapon binding stale pós-reconnect.
+		// Roda apenas no CLIENT (onde !unstuck mod roda).
+		// Auto-unstuck client-side desativado — testes mostraram que não reproduz
+		// state do !unstuck manual mesmo com polling. Vanilla input/chat flow tem
+		// side effects não reproduzíveis programaticamente.
+		// Fallback: notifica player via chat pra digitar !unstuck manualmente.
+		// Auto-unstuck: simula chat msg "!unstuck" → dispara OnNewMessage do mod
+		// ReloadandHealUnstuck → mesmo code path do unstuck manual.
+		// SINGLE SHOT 10s pós-spawn — testes mostraram que 10s é o sweet spot
+		// (player ja tem char fully replicated + weapon binding settled).
+		// Auto-unstuck flow:
+		//   T+10s: Pass1 = unequip 3x + stance + nudge
+		//   T+12s: Pass2 = re-equip weapon do inventário (simula player apertar Q manual)
+		//   T+15s: Pass3 = !unstuck chat
+		//   T+17s: Pass4 = re-equip weapon
+		//   T+20s: Pass5 = !unstuck chat
+		//   T+22s: Pass6 = re-equip weapon
+		// Padrão: !unstuck → 2s depois → re-equip explícito = simula player apertando Q
+		// AUTO-UNSTUCK SÓ NA ENTRADA DO SERVIDOR — não em respawn.
+		// m_bBzUnstuckFired = idempotency flag. PlayerController instance persiste
+		// entre respawns, então flag bloqueia disparo subsequente.
+		// Respawn pós morte = vanilla recria char + dispara OnControlledEntityChanged,
+		// mas flag jah true = skip.
+		if (!Replication.IsServer() && !from && to && !m_bBzUnstuckFired)
+		{
+			PlayerController pcCheck = GetGame().GetPlayerController();
+			if (pcCheck && pcCheck.GetControlledEntity() == to)
+			{
+				m_bBzUnstuckFired = true;  // dispara só 1x por sessão
+				GetGame().GetCallqueue().CallLater(BZ_UnequipAllWeapons, 10000, false);
+				GetGame().GetCallqueue().CallLater(BZ_ReequipWeapon, 12000, false);
+				GetGame().GetCallqueue().CallLater(BZ_FireUnstuckChat, 15000, false);
+				GetGame().GetCallqueue().CallLater(BZ_ReequipWeapon, 17000, false);
+				GetGame().GetCallqueue().CallLater(BZ_FireUnstuckChat, 20000, false);
+				GetGame().GetCallqueue().CallLater(BZ_ReequipWeapon, 22000, false);
+			}
+		}
+
 		if (!Replication.IsServer())
 			return;
 
 		// DISCONNECT BEHAVIOR REWORK (2026-05-23) — adoption of ReforgedZ pattern.
-		//
-		// Previously: BZ_SinkCharacterOnDisconnect teleported char Y-1000 to hide body.
-		// Lift +1000 on reconnect restored. This pattern conflicted with the vanilla
-		// SCR_ReconnectComponent + BZ_ReconnectComponent.OnPlayerAuditTimeouted cleanup
-		// (already SAVE behavior at BZ_MenuSpawnLogic constructor line 20-21).
-		//
-		// The sink corrupted weapon binding on reconnect — WeaponManager.GetCurrent()
-		// returned null because the engine reused the same entity but its child weapon
-		// references were stale from the Teleport replication. Reload/inspect actions
-		// became unbound. Workaround was drop+pickup the weapon.
-		//
-		// New flow (matches ReforgedZ):
-		//   1. Player disconnects → SCR_ReconnectComponent adds entity to reconnect list
-		//      with audit timeout (~60s default).
-		//   2. Char stays at last surface position. Engine does NOT touch it.
-		//   3a. If player reconnects mid-audit → ResolveReconnection reuses same entity,
-		//       weapon binding intact, reload/inspect work.
-		//   3b. If audit timeout → BZ_ReconnectComponent.OnPlayerAuditTimeouted →
-		//       SaveAndRemoveCharacter → save + delete entity from world. No corpse left.
-		//
-		// Death corpses are still managed independently by BZ_DecoupleDeadBody (kept
-		// visible for 30min loot window).
-		Print(string.Format("[BrasilZ][UndergroundHide] OnControlledEntityChanged from=%1 to=%2 — sink/lift disabled (vanilla SCR_ReconnectComponent handles via audit timeout)", from != null, to != null), LogLevel.NORMAL);
+		// Vanilla SCR_ReconnectComponent + audit timeout handle disconnect cleanup.
+		// Death corpses managed by BZ_DecoupleDeadBody (kept 30min loot window).
+		Print(string.Format("[BrasilZ][UndergroundHide] OnControlledEntityChanged from=%1 to=%2", from != null, to != null), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Re-equip weapon do inventário. Simula player apertando Q após !unstuck.
+	// Procura primeira weapon no inventory + TryEquipRightHandItem(weapon, EEquipTypeWeapon).
+	// Vanilla equip path = binding fresh, ActionsManager refresh.
+	protected void BZ_ReequipWeapon()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+
+		IEntity controlled = pc.GetControlledEntity();
+		if (!controlled)
+			return;
+
+		SCR_CharacterControllerComponent charCtrl = SCR_CharacterControllerComponent.Cast(
+			controlled.FindComponent(SCR_CharacterControllerComponent));
+		if (!charCtrl)
+			return;
+
+		SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(
+			controlled.FindComponent(SCR_InventoryStorageManagerComponent));
+		if (!inv)
+		{
+			Print("[BrasilZ][AutoUnstuck] ReequipWeapon skip — no inventory.", LogLevel.WARNING);
+			return;
+		}
+
+		array<IEntity> items = {};
+		inv.GetItems(items);
+
+		IEntity weapon = null;
+		string foundPrefab = "(none)";
+		foreach (IEntity item : items)
+		{
+			if (!item)
+				continue;
+			BaseWeaponComponent wcomp = BaseWeaponComponent.Cast(item.FindComponent(BaseWeaponComponent));
+			if (!wcomp)
+				continue;
+			weapon = item;
+			if (item.GetPrefabData())
+				foundPrefab = item.GetPrefabData().GetPrefabName();
+			break;  // primeira weapon
+		}
+
+		if (!weapon)
+		{
+			Print("[BrasilZ][AutoUnstuck] ReequipWeapon: no weapon found em inventário.", LogLevel.NORMAL);
+			return;
+		}
+
+		bool result = charCtrl.TryEquipRightHandItem(weapon, EEquipItemType.EEquipTypeWeapon, false);
+		Print(string.Format("[BrasilZ][AutoUnstuck] ReequipWeapon: TryEquip(%1) = %2", foundPrefab, result), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Pass 2/3/4: Dispara fake chat msg "!unstuck" → mod ReloadandHealUnstuck.OnNewMessage
+	// roda 3 ações (stance + unequip + nudge). Mesmo code path do manual.
+	protected void BZ_FireUnstuckChat()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+
+		IEntity controlled = pc.GetControlledEntity();
+		if (!controlled)
+		{
+			Print("[BrasilZ][AutoUnstuck] FireChat skip — no controlled entity.", LogLevel.WARNING);
+			return;
+		}
+
+		SCR_ChatComponent chat = SCR_ChatComponent.Cast(pc.FindComponent(SCR_ChatComponent));
+		if (!chat)
+		{
+			Print("[BrasilZ][AutoUnstuck] FireChat skip — no SCR_ChatComponent.", LogLevel.WARNING);
+			return;
+		}
+
+		int playerId = pc.GetPlayerId();
+		Print(string.Format("[BrasilZ][AutoUnstuck] FireChat: !unstuck via OnNewMessage (playerId=%1)", playerId), LogLevel.NORMAL);
+		chat.OnNewMessage("!unstuck", 0, playerId);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Pass 1: Desequipa TODAS armas do player (iterate WeaponManager slots + null cada).
+	// Diferente do !unstuck que só limpa right hand — este força clean de todas weapon refs.
+	protected void BZ_UnequipAllWeapons()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+
+		IEntity controlled = pc.GetControlledEntity();
+		if (!controlled)
+		{
+			Print("[BrasilZ][AutoUnstuck] UnequipAll skip — no controlled entity.", LogLevel.WARNING);
+			return;
+		}
+
+		SCR_CharacterControllerComponent charCtrl = SCR_CharacterControllerComponent.Cast(
+			controlled.FindComponent(SCR_CharacterControllerComponent));
+		if (!charCtrl)
+		{
+			Print("[BrasilZ][AutoUnstuck] UnequipAll skip — no charCtrl.", LogLevel.WARNING);
+			return;
+		}
+
+		// 1. Stance reset
+		charCtrl.SetStanceChange(ECharacterStance.STAND);
+
+		// 2. Unequip weapon 3x — múltiplas chamadas força limpar bindings de armas
+		// equipped (primary + secondary se houver). API só expõe EEquipTypeWeapon.
+		charCtrl.TryEquipRightHandItem(null, EEquipItemType.EEquipTypeWeapon);
+		charCtrl.TryEquipRightHandItem(null, EEquipItemType.EEquipTypeWeapon);
+		charCtrl.TryEquipRightHandItem(null, EEquipItemType.EEquipTypeWeapon);
+
+		// 3. Nudge
+		vector pos = controlled.GetOrigin();
+		pos[1] = pos[1] + 0.5;
+		controlled.SetOrigin(pos);
+
+		Print(string.Format("[BrasilZ][AutoUnstuck] Pass1: Unequip 3x armas + stance + nudge em %1", pos), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Auto-unstuck direto: replica !unstuck 3 ações sem passar pelo chat.
+	// 1. SetStanceChange(STAND) — força stand up
+	// 2. TryEquipRightHandItem(null, EEquipTypeWeapon) — desequipa arma (break stuck bind)
+	// 3. SetOrigin(pos + Y+0.5) — nudge anti-clipping
+	protected void BZ_FireUnstuckDirect()
+	{
+		// Idempotent: só dispara 1x
+		if (m_bBzUnstuckFired)
+			return;
+		m_bBzUnstuckFired = true;
+
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+
+		IEntity controlled = pc.GetControlledEntity();
+		if (!controlled)
+		{
+			Print("[BrasilZ][AutoUnstuck] No controlled entity — skip.", LogLevel.WARNING);
+			return;
+		}
+
+		SCR_CharacterControllerComponent charCtrl = SCR_CharacterControllerComponent.Cast(
+			controlled.FindComponent(SCR_CharacterControllerComponent));
+		if (!charCtrl)
+		{
+			Print("[BrasilZ][AutoUnstuck] No SCR_CharacterControllerComponent — abort.", LogLevel.WARNING);
+			return;
+		}
+
+		// 1. Stand up
+		charCtrl.SetStanceChange(ECharacterStance.STAND);
+
+		// 2. Unequip weapon
+		charCtrl.TryEquipRightHandItem(null, EEquipItemType.EEquipTypeWeapon);
+
+		// 3. Nudge 0.5m up
+		vector pos = controlled.GetOrigin();
+		pos[1] = pos[1] + 0.5;
+		controlled.SetOrigin(pos);
+
+		Print(string.Format("[BrasilZ][AutoUnstuck] Auto-unstuck executado direto em %1 — stance + unequip + nudge", pos), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Polling: aguarda weapon REAL bindar antes de rodar unstuck.
+	// Detecta quando GetCurrent() retorna weapon entity (path NÃO contém "Characters/")
+	// = arma está realmente na mão = mesmo state de quando player digita !unstuck.
+	protected void BZ_PollAutoUnstuck(IEntity character, int attempt)
+	{
+		const int MAX_ATTEMPTS = 30;  // 30s max
+
+		if (!character || character.IsDeleted())
+			return;
+
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc || pc.GetControlledEntity() != character)
+			return;
+
+		if (attempt >= MAX_ATTEMPTS)
+		{
+			Print(string.Format("[BrasilZ][AutoUnstuck] Polling timeout (%1s) — weapon nunca bindou. Skip.", MAX_ATTEMPTS), LogLevel.WARNING);
+			return;
+		}
+
+		CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
+		if (!cc)
+		{
+			GetGame().GetCallqueue().CallLater(BZ_PollAutoUnstuck, 1000, false, character, attempt + 1);
+			return;
+		}
+
+		BaseWeaponManagerComponent wm = cc.GetWeaponManagerComponent();
+		if (!wm)
+		{
+			GetGame().GetCallqueue().CallLater(BZ_PollAutoUnstuck, 1000, false, character, attempt + 1);
+			return;
+		}
+
+		BaseWeaponComponent current = wm.GetCurrent();
+		bool weaponBound = false;
+		string currentPrefab = "(none)";
+		if (current && current.GetOwner() && current.GetOwner().GetPrefabData())
+		{
+			currentPrefab = current.GetOwner().GetPrefabData().GetPrefabName();
+			// Weapon binding REAL: path contém "Weapon"/"Rifle"/"Knife" etc, NÃO "Characters/"
+			if (!currentPrefab.Contains("Characters/") && !currentPrefab.Contains("/Core/"))
+				weaponBound = true;
+		}
+
+		if (!weaponBound)
+		{
+			// Weapon ainda não bindada. Retry 1s depois.
+			Print(string.Format("[BrasilZ][AutoUnstuck] Poll %1/%2 — weapon ainda não bound (GetCurrent=%3). Retry 1s.", attempt + 1, MAX_ATTEMPTS, currentPrefab), LogLevel.NORMAL);
+			GetGame().GetCallqueue().CallLater(BZ_PollAutoUnstuck, 1000, false, character, attempt + 1);
+			return;
+		}
+
+		// Weapon bindada = mesmo state de !unstuck manual. Roda unstuck.
+		Print(string.Format("[BrasilZ][AutoUnstuck] Weapon bindada (%1) após %2s — rodando unstuck.", currentPrefab, attempt + 1), LogLevel.NORMAL);
+		BZ_AutoUnstuck(character);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Client-side auto-unstuck. Replica !unstuck command do mod ReloadandHealUnstuck.
+	// Roda quando weapon binding tá real (detectado via BZ_PollAutoUnstuck).
+	protected void BZ_AutoUnstuck(IEntity character)
+	{
+		if (!character || character.IsDeleted())
+			return;
+
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc || pc.GetControlledEntity() != character)
+			return;
+
+		SCR_CharacterControllerComponent charCtrl = SCR_CharacterControllerComponent.Cast(
+			character.FindComponent(SCR_CharacterControllerComponent));
+		if (!charCtrl)
+		{
+			Print("[BrasilZ][AutoUnstuck] No SCR_CharacterControllerComponent — abort", LogLevel.WARNING);
+			return;
+		}
+
+		// 1. Force stand
+		charCtrl.SetStanceChange(ECharacterStance.STAND);
+
+		// 2. Unequip weapon — break stuck animations + weapon binding
+		charCtrl.TryEquipRightHandItem(null, EEquipItemType.EEquipTypeWeapon);
+
+		// 3. Physical nudge 0.5m up — break floor clipping
+		vector pos = character.GetOrigin();
+		pos[1] = pos[1] + 0.5;
+		character.SetOrigin(pos);
+
+		Print(string.Format("[BrasilZ][AutoUnstuck] Auto-unstuck executado pra char em %1 — stance reset + weapon unequip + nudge", pos), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Delayed check: 2s pós-spawn pra dar tempo da vanilla terminar replication.
+	// Se WeaponManager.GetCurrent() null + inventário tem weapon → rebind.
+	protected void BZ_CheckAndRebindWeapon(IEntity character)
+	{
+		if (!character || character.IsDeleted())
+			return;
+
+		CharacterControllerComponent cc = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
+		if (!cc)
+			return;
+
+		BaseWeaponManagerComponent wm = cc.GetWeaponManagerComponent();
+		if (!wm)
+			return;
+
+		BaseWeaponComponent current = wm.GetCurrent();
+		bool hasValidWeapon = false;
+		string equipped = "(none)";
+		if (current && current.GetOwner())
+		{
+			if (current.GetOwner().GetPrefabData())
+				equipped = current.GetOwner().GetPrefabData().GetPrefabName();
+			// Valida: owner deve ser weapon entity REAL, não o próprio char.
+			// GetCurrent() às vezes retorna component default do char (não arma bound).
+			// Path com "Characters/" = char próprio, não arma.
+			if (!equipped.Contains("Characters/") && !equipped.Contains("/Core/"))
+				hasValidWeapon = true;
+		}
+
+		if (hasValidWeapon)
+		{
+			Print(string.Format("[BrasilZ][WeaponRebind] Char tem arma REAL bound (%1) — skip rebind.", equipped), LogLevel.NORMAL);
+			return;
+		}
+
+		// Nenhuma arma equipada (ou GetCurrent retornou char como false positive).
+		Print(string.Format("[BrasilZ][WeaponRebind] Char SEM arma bound pós-reconnect (GetCurrent=%1). Procurando weapon no inventário...", equipped), LogLevel.WARNING);
+		BZ_TryRebindWeapon(character, cc, wm);
 	}
 
 	//------------------------------------------------------------------------------------------------

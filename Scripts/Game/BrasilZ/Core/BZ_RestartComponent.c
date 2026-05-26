@@ -1,3 +1,4 @@
+// BrasilZ cache buster: 2026-05-25-restart-msgs-RESTART-DO-SERVIDOR-cleanup-zombies-AI
 [ComponentEditorProps(category: "BrasilZ/Core", description: "Scheduled server restart with chat warnings, ReforgedZ-style.")]
 class BZ_RestartComponentClass : ScriptComponentClass
 {
@@ -121,7 +122,7 @@ class BZ_RestartComponent : ScriptComponent
 	// PROD: usa os horários UTC configurados no layer.
 	// BZ_UPTIME_MODE=true → uptime-based (X segs pós-boot).
 	// BZ_UPTIME_MODE=false → fallback UTC hours (m_sRestartHoursUTC do layer).
-	protected static const bool BZ_UPTIME_MODE = false;
+	protected static const bool BZ_UPTIME_MODE = true;
 	protected static const int BZ_UPTIME_RESTART_SEC = 14400;
 
 	// Static flag pra outros sistemas checarem se shutdown está rolando.
@@ -256,7 +257,6 @@ class BZ_RestartComponent : ScriptComponent
 		{
 			m_bFiveMinWarned = true;
 			BZ_BroadcastRestartWarning("5 MINUTOS", timeLeft, shutdownLeadSec);
-			Broadcast("Deslogue para seu corpo nao ficar no jogo :) ou volte apos o restart");
 		}
 
 		if (!m_bFourMinWarned && timeLeft <= 240)
@@ -308,20 +308,7 @@ class BZ_RestartComponent : ScriptComponent
 	//------------------------------------------------------------------------------------------------
 	protected void BZ_BroadcastRestartWarning(string restartLabel, int timeLeft, int shutdownLeadSec)
 	{
-		if (m_bSaveRoundStarted)
-		{
-			Broadcast(string.Format("SERVIDOR REINICIA EM %1. Reconexoes bloqueadas.", restartLabel));
-			return;
-		}
-
-		int kickLeft = timeLeft - shutdownLeadSec;
-		if (kickLeft <= 0)
-		{
-			Broadcast(string.Format("DESCONEXAO AUTOMATICA AGORA. Servidor reinicia em %1.", restartLabel));
-			return;
-		}
-
-		Broadcast(string.Format("DESCONEXAO AUTOMATICA EM %1. Servidor reinicia em %2.", BZ_FormatDuration(kickLeft), restartLabel));
+		Broadcast(string.Format("RESTART DO SERVIDOR EM %1", restartLabel));
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -343,93 +330,21 @@ class BZ_RestartComponent : ScriptComponent
 	}
 
 	//------------------------------------------------------------------------------------------------
+	// Shutdown canonical: kick → vanilla disconnect popula m_ReconnectPlayerList →
+	// BZ_ForceAuditCleanup força SaveAndRemoveCharacter (Save + ReleaseTracking + Delete) →
+	// 3 flushes WorldState pra DB commit async terminar antes RequestClose.
+	// Requer SCR_ReconnectComponent no gamemode (chernarus.layer).
 	protected void BZ_StartShutdownSequence()
 	{
-		Print("[BrasilZ][Restart] === SHUTDOWN SEQUENCE BEGIN (captured entity cleanup) ===", LogLevel.NORMAL);
+		Print("[BrasilZ][Restart] === SHUTDOWN SEQUENCE BEGIN (no-kick mode) ===", LogLevel.NORMAL);
 
-		// 1. Kick all — captura entities ANTES + dispara kick. Vanilla disconnect chain handle saves.
-		KickAllPlayers();
+		// SEM KICK + SEM CLEANUP — restart natural. Cleanup zombies/AI/bikes acontece no BOOT scan.
+		// Apenas flushes WorldState pra garantir DB commit async terminar antes RequestClose.
+		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 3000, false);
+		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 10000, false);
+		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 20000, false);
 
-		// 2. 2s pós-kick: SaveAndRemove cada entity capturada. Vanilla chain já completou
-		// saves wallet/metabolism/SaveQueue. Agora removemos do mundo + WorldState.
-		GetGame().GetCallqueue().CallLater(BZ_RemoveCapturedEntities, 2000, false);
-
-		// 3. Flushes WorldState pós-delete. Captura state sem entities.
-		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 5000, false);
-		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 15000, false);
-		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 30000, false);
-		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 60000, false);
-		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 80000, false);
-		GetGame().GetCallqueue().CallLater(BZ_ForceWorldStateFlush, 105000, false);
-
-		Print("[BrasilZ][Restart] === SHUTDOWN ARMED: kick + remove entities em 2s + 6 flushes ===", LogLevel.NORMAL);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Pós-vanilla-disconnect-chain: itera lista capturada pre-kick + SaveAndRemove cada.
-	// Independente do reconnect list (kicks não populam ele).
-	protected void BZ_RemoveCapturedEntities()
-	{
-		int count = m_aBzCapturedKickedEntities.Count();
-		if (count == 0)
-		{
-			Print("[BrasilZ][Restart] BZ_RemoveCapturedEntities: lista vazia.", LogLevel.NORMAL);
-			return;
-		}
-
-		Print(string.Format("[BrasilZ][Restart] BZ_RemoveCapturedEntities: processando %1 entities.", count), LogLevel.NORMAL);
-
-		for (int i = 0; i < count; i++)
-		{
-			IEntity entity = m_aBzCapturedKickedEntities[i];
-			int playerId = m_aBzCapturedKickedPlayerIds[i];
-			if (!entity || entity.IsDeleted())
-			{
-				Print(string.Format("[BrasilZ][Restart] Player %1 entity já deletada/null — skip.", playerId), LogLevel.NORMAL);
-				continue;
-			}
-			BZ_SaveAndRemoveEntity(entity, playerId);
-		}
-
-		m_aBzCapturedKickedEntities.Clear();
-		m_aBzCapturedKickedPlayerIds.Clear();
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Replica BZ_ReconnectComponent.SaveAndRemoveCharacter. Save + ReleaseTracking + DeleteRplEntity.
-	// Dead char preserva corpo (loot window).
-	protected void BZ_SaveAndRemoveEntity(IEntity entity, int playerId)
-	{
-		if (!entity || entity.IsDeleted())
-			return;
-
-		ChimeraCharacter character = ChimeraCharacter.Cast(entity);
-		if (character)
-		{
-			CharacterControllerComponent cc = character.GetCharacterController();
-			if (cc && cc.IsDead())
-			{
-				SCR_PersistenceSystem deadPersist = SCR_PersistenceSystem.GetByEntityWorld(entity);
-				if (deadPersist && deadPersist.GetState() == EPersistenceSystemState.ACTIVE)
-					deadPersist.Save(entity, ESaveGameType.AUTO);
-				Print(string.Format("[BrasilZ][Restart] Player %1 dead — corpse preservado.", playerId), LogLevel.NORMAL);
-				return;
-			}
-		}
-
-		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetByEntityWorld(entity);
-		if (!persistence || persistence.GetState() != EPersistenceSystemState.ACTIVE)
-		{
-			Print(string.Format("[BrasilZ][Restart] Player %1 persistence not ACTIVE — força delete entity.", playerId), LogLevel.WARNING);
-			RplComponent.DeleteRplEntity(entity, false);
-			return;
-		}
-
-		UUID charId = persistence.GetId(entity);
-		persistence.Save(entity, ESaveGameType.AUTO);
-		persistence.ReleaseTracking(entity);
-		RplComponent.DeleteRplEntity(entity, false);
-		Print(string.Format("[BrasilZ][Restart] Player %1 saved + deleted (charId=%2).", playerId, charId), LogLevel.NORMAL);
+		Print("[BrasilZ][Restart] === SHUTDOWN ARMED: flushes T+3/10/20s, sem kick, sem cleanup ===", LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -538,7 +453,7 @@ class BZ_RestartComponent : ScriptComponent
 		GetGame().GetCallqueue().Remove(KickAllPlayers);
 		GetGame().GetCallqueue().Remove(BZ_StartShutdownSequence);
 		GetGame().GetCallqueue().Remove(BZ_ForceWorldStateFlush);
-		GetGame().GetCallqueue().Remove(BZ_RemoveCapturedEntities);
+		GetGame().GetCallqueue().Remove(BZ_ForceAuditCleanup);
 		m_bRestartTriggered = false;
 		m_bManualRestartActive = false;
 		m_bFinalSaveStarted = false;
@@ -651,14 +566,10 @@ class BZ_RestartComponent : ScriptComponent
 			msgBox.SetText(messageContent);
 	}
 
-	protected ref array<IEntity> m_aBzCapturedKickedEntities = new array<IEntity>();
-	protected ref array<int> m_aBzCapturedKickedPlayerIds = new array<int>();
-
 	//------------------------------------------------------------------------------------------------
-	// Kick todos players. ANTES do kick, captura entity referenes — vanilla SCR_ReconnectComponent
-	// NÃO adiciona players ao reconnect list em kicks explícitos (log mostrou "reconnect list vazia").
-	// Pós-kick + vanilla disconnect chain (~1s), iteramos lista capturada e SaveAndRemove manualmente
-	// cada entity. Garante body removal sem depender de audit timeout vanilla.
+	// Kick todos players. Vanilla SCR_ReconnectComponent (registrado no chernarus.layer) recebe
+	// OnPlayerDisconnected, popula m_ReconnectPlayerList. T+3s BZ_ForceAuditCleanup força
+	// SaveAndRemoveCharacter (save + release + delete) em todos entries.
 	protected void KickAllPlayers()
 	{
 		PlayerManager pm = GetGame().GetPlayerManager();
@@ -671,76 +582,12 @@ class BZ_RestartComponent : ScriptComponent
 		array<int> players = {};
 		pm.GetPlayers(players);
 
-		// 1. Capture entities ANTES do kick pra usar pós-chain.
-		m_aBzCapturedKickedEntities.Clear();
-		m_aBzCapturedKickedPlayerIds.Clear();
 		foreach (int playerId : players)
 		{
-			IEntity character = pm.GetPlayerControlledEntity(playerId);
-			if (character)
-			{
-				m_aBzCapturedKickedEntities.Insert(character);
-				m_aBzCapturedKickedPlayerIds.Insert(playerId);
-				Print(string.Format("[BrasilZ][Restart] Captured entity for player %1 pre-kick.", playerId), LogLevel.NORMAL);
-			}
-		}
-
-		// 2. Kick all.
-		foreach (int playerId : players)
-		{
-			// Bohemia docs: KickPlayer(int iPlayerId, PlayerManagerKickReason reason, int timeout=0).
-			// Vanilla OnPlayerDisconnected chain dispara save (wallet/metabolism/persistence).
-			// SCR_ReconnectComponent adiciona entity ao reconnect list com audit timeout.
-			// Audit fires em ~60s → BZ_ReconnectComponent.OnPlayerAuditTimeouted →
-			// SaveAndRemoveCharacter (save final + delete entity).
 			pm.KickPlayer(playerId, PlayerManagerKickReason.KICK, 0);
 		}
 
-		Print(string.Format("[BrasilZ][Restart] Kicked %1 players (vanilla audit timeout cleanup ~60s).", players.Count()), LogLevel.NORMAL);
-	}
-
-	//------------------------------------------------------------------------------------------------
-	// Inline copy de BZ_ReconnectComponent.SaveAndRemoveCharacter — save alive char + delete entity.
-	// Dead char: só save (preserva corpo pra loot). Chamado pré-kick no restart.
-	protected void BZ_SaveAndRemoveAlive(int playerId, IEntity entity)
-	{
-		if (!entity)
-			return;
-
-		ChimeraCharacter character = ChimeraCharacter.Cast(entity);
-		if (character)
-		{
-			CharacterControllerComponent cc = character.GetCharacterController();
-			if (cc && cc.IsDead())
-			{
-				// Dead body — save only, keep corpse pra loot.
-				SCR_PersistenceSystem deadPersist = SCR_PersistenceSystem.GetByEntityWorld(entity);
-				if (deadPersist && deadPersist.GetState() == EPersistenceSystemState.ACTIVE)
-					deadPersist.Save(entity, ESaveGameType.AUTO);
-				Print(string.Format("[BrasilZ][Restart] Player %1 dead — corpse preservado, sem delete", playerId), LogLevel.NORMAL);
-				return;
-			}
-		}
-
-		SCR_PersistenceSystem persistence = SCR_PersistenceSystem.GetByEntityWorld(entity);
-		if (!persistence || persistence.GetState() != EPersistenceSystemState.ACTIVE)
-		{
-			Print(string.Format("[BrasilZ][Restart] Player %1 persistence not ACTIVE — skip remove", playerId), LogLevel.WARNING);
-			return;
-		}
-
-		UUID charId = persistence.GetId(entity);
-		if (!charId)
-		{
-			Print(string.Format("[BrasilZ][Restart] Player %1 charId NULL — force delete entity", playerId), LogLevel.ERROR);
-			RplComponent.DeleteRplEntity(entity, false);
-			return;
-		}
-
-		persistence.Save(entity, ESaveGameType.AUTO);
-		persistence.ReleaseTracking(entity);
-		RplComponent.DeleteRplEntity(entity, false);
-		Print(string.Format("[BrasilZ][Restart] Player %1 alive char saved + deleted (charId=%2)", playerId, charId), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][Restart] Kicked %1 players. Audit cleanup em T+3s.", players.Count()), LogLevel.NORMAL);
 	}
 
 	//------------------------------------------------------------------------------------------------

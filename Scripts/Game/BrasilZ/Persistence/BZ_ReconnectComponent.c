@@ -1,3 +1,4 @@
+// BrasilZ cache buster: 2026-05-25-orphan-fix-reconnect-comp-restored
 modded class SCR_ReconnectComponent
 {
 	//------------------------------------------------------------------------------------------------
