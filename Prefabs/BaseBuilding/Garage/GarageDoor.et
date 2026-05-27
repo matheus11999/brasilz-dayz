@@ -1,0 +1,15 @@
+GenericEntity {
+ ID "657718479DA74534"
+ components {
+  BLD_OwnershipComponent "{65771847F38129E4}" {
+   MaxHealth 5000
+  }
+  BLD_RaidingManagerComponent "{65771847EC847340}" {
+   "Additional hit zones" {
+    SCR_HitZone as {
+     "Explosive multiplier" 0.5
+    }
+   }
+  }
+ }
+}

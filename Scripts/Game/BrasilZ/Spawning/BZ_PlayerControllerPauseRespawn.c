@@ -42,7 +42,9 @@ modded class SCR_PlayerController
 				{
 					characterDamage.Kill(Instigator.CreateInstigator(null));
 					Print(string.Format("[BrasilZ][PauseRespawn] Player %1 killed by pause respawn request.", playerId), LogLevel.WARNING);
-					GetGame().GetCallqueue().CallLater(BZ_ForcePauseMenuRespawnAfterKill, 900, false, playerId);
+					// Wait one frame window long enough for OnPlayerKilled to decouple and
+					// track the corpse, then BZ_ForceRandomRespawnFromButton preserves it.
+					GetGame().GetCallqueue().CallLater(BZ_ForcePauseMenuRespawnAfterKill, 1000, false, playerId);
 					return;
 				}
 

@@ -21,8 +21,12 @@ modded class SCR_BaseGameMode : BaseGameMode
 	protected static const int BZ_ORPHAN_GRACE_MS = 1000;
 	protected static const float BZ_ORPHAN_SCAN_RADIUS = 20000.0;
 	protected static const float BZ_ORPHAN_UNDERGROUND_OFFSET = 1000.0;
-	protected static const float BZ_CORPSE_LIFETIME_SEC = 1800.0; // 30 minutes
+	protected static const int BZ_CORPSE_LIFETIME_SEC = 1800; // 30 minutes
 	protected static const int BZ_CORPSE_CLEANUP_INTERVAL_MS = 60000;
+	protected static const string BZ_CORPSE_DB_DIR = "$profile:BrasilZ";
+	protected static const string BZ_CORPSE_DB_PATH = "$profile:BrasilZ/Corpses.db";
+	protected static const string BZ_CORPSE_DB_VERSION = "BZ_CORPSES_V1";
+	protected static const float BZ_CORPSE_REATTACH_RADIUS = 3.0;
 	// FIX C: max time to wait for scan before allowing deferred connects through anyway.
 	protected static const int BZ_CONNECT_GATE_MAX_RETRIES = 20; // 20 * 500ms = 10s cap
 	// FIX B: save queue — engine SaveGame transaction is singleton. Concurrent saves error
@@ -61,7 +65,9 @@ modded class SCR_BaseGameMode : BaseGameMode
 	// Veículos destruídos — limpa no boot pra não acumular no save.
 	protected ref array<IEntity> m_aBzDestroyedVehicleResults;
 	protected ref array<IEntity> m_aBzTrackedCorpses = new array<IEntity>();
-	protected ref array<int> m_aBzCorpseDeathTimes = new array<int>();
+	protected ref array<int> m_aBzCorpseExpireUnix = new array<int>();
+	protected ref array<vector> m_aBzPersistedCorpsePositions = new array<vector>();
+	protected ref array<int> m_aBzPersistedCorpseExpireUnix = new array<int>();
 
 	protected bool m_bBzAutoSaveEnabled;
 	protected bool m_bBzAutoSaveScheduled;
@@ -103,9 +109,11 @@ modded class SCR_BaseGameMode : BaseGameMode
 
 		Print("[BrasilZ][GameMode] EOnInit fired. Arming autosave + corpse cleanup + boot scan.", LogLevel.NORMAL);
 
+		BZ_LoadCorpseDatabase();
 		GetGame().GetCallqueue().CallLater(BZ_TickCorpseCleanup, BZ_CORPSE_CLEANUP_INTERVAL_MS, true);
 		GetGame().GetCallqueue().CallLater(BZ_TryStartAutoSave, BZ_AUTOSAVE_START_DELAY_MS, false);
 		GetGame().GetCallqueue().CallLater(BZ_TryArmOrphanScan, 1000, false);
+		GetGame().GetCallqueue().CallLater(BZ_PortalRewards.EnsureStarted, 5000, false);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -248,6 +256,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (dmg && dmg.IsDestroyed())
 			{
 				deadCorpses++;
+				BZ_ReattachPersistedCorpse(entity);
 				Print(string.Format("[BrasilZ][BootScan] Skip — corpse (destroyed) at %1, preserved for loot", entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
 			}
@@ -256,6 +265,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (cc && cc.GetLifeState() != ECharacterLifeState.ALIVE)
 			{
 				deadCorpses++;
+				BZ_ReattachPersistedCorpse(entity);
 				Print(string.Format("[BrasilZ][BootScan] Skip — lifeState=%1 at %2", typename.EnumToString(ECharacterLifeState, cc.GetLifeState()), entity.GetOrigin()), LogLevel.NORMAL);
 				continue;
 			}
@@ -809,8 +819,17 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (m_aBzTrackedCorpses.Contains(corpse))
 			return;
 
-		m_aBzTrackedCorpses.Insert(corpse);
-		m_aBzCorpseDeathTimes.Insert(System.GetTickCount());
+		int expireUnix = System.GetUnixTime() + BZ_CORPSE_LIFETIME_SEC;
+		BZ_TrackCorpseWithExpire(corpse, expireUnix, true);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	// Public: query if corpse is in the tracked loot window.
+	bool BZ_IsTrackedCorpse(IEntity corpse)
+	{
+		if (!corpse)
+			return false;
+		return m_aBzTrackedCorpses.Contains(corpse);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -819,8 +838,7 @@ modded class SCR_BaseGameMode : BaseGameMode
 		if (BZ_CORPSE_LIFETIME_SEC <= 0 || m_aBzTrackedCorpses.IsEmpty())
 			return;
 
-		int currentTime = System.GetTickCount();
-		float lifetimeMs = BZ_CORPSE_LIFETIME_SEC * 1000;
+		int currentUnix = System.GetUnixTime();
 		int cleaned = 0;
 		int pruned = 0;
 		int kept = 0;
@@ -831,13 +849,13 @@ modded class SCR_BaseGameMode : BaseGameMode
 			if (!corpse)
 			{
 				m_aBzTrackedCorpses.Remove(i);
-				m_aBzCorpseDeathTimes.Remove(i);
+				m_aBzCorpseExpireUnix.Remove(i);
 				pruned++;
 				continue;
 			}
 
-			float ageMs = currentTime - m_aBzCorpseDeathTimes[i];
-			if (ageMs >= lifetimeMs)
+			int expireUnix = m_aBzCorpseExpireUnix[i];
+			if (currentUnix >= expireUnix)
 			{
 				vector cpos = corpse.GetOrigin();
 
@@ -850,9 +868,9 @@ modded class SCR_BaseGameMode : BaseGameMode
 					corpseChildren++;
 				}
 
-				Print(string.Format("[BrasilZ][CorpseCleanup] Removing corpse at %1 (age=%2min, children=%3 will be deleted via DeleteEntityAndChildren)", cpos, ageMs / 60000, corpseChildren), LogLevel.NORMAL);
+				Print(string.Format("[BrasilZ][CorpseCleanup] Removing corpse at %1 (expiredUnix=%2, children=%3 will be deleted via DeleteEntityAndChildren)", cpos, expireUnix, corpseChildren), LogLevel.NORMAL);
 				m_aBzTrackedCorpses.Remove(i);
-				m_aBzCorpseDeathTimes.Remove(i);
+				m_aBzCorpseExpireUnix.Remove(i);
 				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
 				cleaned++;
 			}
@@ -863,7 +881,147 @@ modded class SCR_BaseGameMode : BaseGameMode
 		}
 
 		if (cleaned > 0 || pruned > 0)
+		{
+			BZ_WriteCorpseDatabase();
 			Print(string.Format("[BrasilZ][CorpseCleanup] Tick complete: cleaned=%1 (age>30min) pruned=%2 (null refs) kept=%3 (still in window)", cleaned, pruned, kept), LogLevel.NORMAL);
+		}
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_TrackCorpseWithExpire(IEntity corpse, int expireUnix, bool writeDisk)
+	{
+		if (!corpse || expireUnix <= System.GetUnixTime())
+			return;
+
+		if (m_aBzTrackedCorpses.Contains(corpse))
+			return;
+
+		m_aBzTrackedCorpses.Insert(corpse);
+		m_aBzCorpseExpireUnix.Insert(expireUnix);
+
+		vector pos = corpse.GetOrigin();
+		m_aBzPersistedCorpsePositions.Insert(pos);
+		m_aBzPersistedCorpseExpireUnix.Insert(expireUnix);
+
+		if (writeDisk)
+			BZ_WriteCorpseDatabase();
+
+		Print(string.Format("[BrasilZ][CorpseCleanup] Tracking corpse at %1 until unix=%2 (%3s remaining).", pos, expireUnix, expireUnix - System.GetUnixTime()), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_ReattachPersistedCorpse(IEntity corpse)
+	{
+		if (!corpse || m_aBzTrackedCorpses.Contains(corpse))
+			return;
+
+		int now = System.GetUnixTime();
+		vector pos = corpse.GetOrigin();
+		int bestIdx = -1;
+		float bestDist = BZ_CORPSE_REATTACH_RADIUS;
+
+		for (int i = 0; i < m_aBzPersistedCorpsePositions.Count(); i++)
+		{
+			int expireUnix = m_aBzPersistedCorpseExpireUnix[i];
+			float dist = vector.Distance(pos, m_aBzPersistedCorpsePositions[i]);
+			if (dist <= bestDist)
+			{
+				bestDist = dist;
+				bestIdx = i;
+			}
+		}
+
+		if (bestIdx >= 0)
+		{
+			int expireUnix = m_aBzPersistedCorpseExpireUnix[bestIdx];
+			if (expireUnix <= now)
+			{
+				Print(string.Format("[BrasilZ][CorpseCleanup] Removing expired persisted corpse at %1 during boot reattach (expiredUnix=%2).", pos, expireUnix), LogLevel.NORMAL);
+				SCR_EntityHelper.DeleteEntityAndChildren(corpse);
+				return;
+			}
+
+			BZ_TrackCorpseWithExpire(corpse, expireUnix, false);
+			Print(string.Format("[BrasilZ][CorpseCleanup] Reattached persisted corpse at %1, expires in %2s.", pos, expireUnix - now), LogLevel.NORMAL);
+			return;
+		}
+
+		// Legacy corpse without disk metadata. Give it one cleanup window instead of leaving it forever.
+		BZ_TrackCorpseWithExpire(corpse, now + BZ_CORPSE_LIFETIME_SEC, true);
+		Print(string.Format("[BrasilZ][CorpseCleanup] Reattached legacy corpse at %1 with fresh 30min window.", pos), LogLevel.WARNING);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_LoadCorpseDatabase()
+	{
+		m_aBzPersistedCorpsePositions.Clear();
+		m_aBzPersistedCorpseExpireUnix.Clear();
+
+		FileHandle handle = FileIO.OpenFile(BZ_CORPSE_DB_PATH, FileMode.READ);
+		if (!handle)
+			return;
+
+		int now = System.GetUnixTime();
+		int loaded = 0;
+		int expired = 0;
+
+		string line;
+		while (handle.ReadLine(line) > 0)
+		{
+			if (line.IsEmpty() || line == BZ_CORPSE_DB_VERSION)
+				continue;
+
+			array<string> columns = {};
+			line.Split("|", columns, false);
+			if (columns.Count() < 4)
+				continue;
+
+			int expireUnix = columns[0].ToInt();
+			if (expireUnix <= now)
+				expired++;
+			else
+				loaded++;
+
+			vector pos = Vector(columns[1].ToFloat(), columns[2].ToFloat(), columns[3].ToFloat());
+			m_aBzPersistedCorpsePositions.Insert(pos);
+			m_aBzPersistedCorpseExpireUnix.Insert(expireUnix);
+		}
+
+		handle.Close();
+
+		Print(string.Format("[BrasilZ][CorpseCleanup] Loaded corpse db: active=%1 expiredDropped=%2.", loaded, expired), LogLevel.NORMAL);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_WriteCorpseDatabase()
+	{
+		FileIO.MakeDirectory(BZ_CORPSE_DB_DIR);
+
+		FileHandle handle = FileIO.OpenFile(BZ_CORPSE_DB_PATH, FileMode.WRITE);
+		if (!handle)
+		{
+			Print("[BrasilZ][CorpseCleanup] Could not write corpse database.", LogLevel.WARNING);
+			return;
+		}
+
+		handle.WriteLine(BZ_CORPSE_DB_VERSION);
+
+		int now = System.GetUnixTime();
+		for (int i = 0; i < m_aBzTrackedCorpses.Count(); i++)
+		{
+			IEntity corpse = m_aBzTrackedCorpses[i];
+			if (!corpse || corpse.IsDeleted())
+				continue;
+
+			int expireUnix = m_aBzCorpseExpireUnix[i];
+			if (expireUnix <= now)
+				continue;
+
+			vector pos = corpse.GetOrigin();
+			handle.WriteLine(string.Format("%1|%2|%3|%4", expireUnix, pos[0], pos[1], pos[2]));
+		}
+
+		handle.Close();
 	}
 
 	//------------------------------------------------------------------------------------------------

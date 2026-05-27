@@ -1,7 +1,4 @@
 $grp BZ_SpawnPoint : "{A709B32A9ED31E2D}Prefabs/MP/Spawn/BrasilZSpawnPoint.et" {
- BZ_Kamenka {
-  coords 1860 5.765 2094.465
- }
  BZ_Chernogorsk {
   coords 7222.71 9.707 2616.77
  }

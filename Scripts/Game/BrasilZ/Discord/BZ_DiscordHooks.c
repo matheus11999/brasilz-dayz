@@ -11,9 +11,9 @@ modded class ADM_ShopBaseComponent
 		if (!Replication.IsServer() || !player || !merchandise)
 			return result;
 
-		if (result && !BZ_DiscordConfig.LOG_PURCHASE)
+		if (result && !BZ_DiscordConfig.LOG_PURCHASE && !BZ_PortalConfig.LOG_PURCHASE)
 			return result;
-		if (!result && !BZ_DiscordConfig.LOG_PURCHASE_FAIL)
+		if (!result && !BZ_DiscordConfig.LOG_PURCHASE_FAIL && !BZ_PortalConfig.LOG_PURCHASE_FAIL)
 			return result;
 
 		BZ_DiscordHooks_LogShopTransaction(player, merchandise, quantity, result, true);
@@ -28,7 +28,10 @@ modded class ADM_ShopBaseComponent
 		if (!Replication.IsServer() || !player || !merchandise)
 			return result;
 
-		if (!result || !BZ_DiscordConfig.LOG_SALE)
+		if (!result)
+			return result;
+
+		if (!BZ_DiscordConfig.LOG_SALE && !BZ_PortalConfig.LOG_SALE)
 			return result;
 
 		BZ_DiscordHooks_LogShopTransaction(player, merchandise, quantity, result, false);
@@ -98,6 +101,28 @@ void BZ_DiscordHooks_SendConnectEvent(int playerId, string name, int onlineCount
 
 // Static helper for both shop hooks — keeps the modded class bodies short and
 // avoids duplicating identification logic.
+void BZ_PortalHooks_SendConnectEvent(int playerId, string name, int onlineCount, bool firstTime)
+{
+	if (!BZ_PortalConfig.LOG_CONNECT)
+		return;
+
+	PlayerManager pm = GetGame().GetPlayerManager();
+	if (!pm)
+		return;
+
+	IEntity playerEntity = pm.GetPlayerControlledEntity(playerId);
+	int walletTotal, looseTotal, grandTotal;
+	BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, walletTotal, looseTotal, grandTotal);
+
+	string data = "{";
+	data += "\"player\":" + BZ_PortalWebhook.PlayerJson(playerId, name, playerEntity) + ",";
+	data += "\"first_time\":" + BZ_PortalWebhook.JsonBool(firstTime) + ",";
+	data += "\"online_count\":" + onlineCount.ToString() + ",";
+	data += "\"balance\":" + BZ_PortalWebhook.BalanceJson(walletTotal, looseTotal, grandTotal);
+	data += "}";
+	BZ_PortalWebhook.SendEvent("player_connected", data);
+}
+
 void BZ_DiscordHooks_LogShopTransaction(IEntity player, ADM_ShopMerchandise merchandise, int quantity, bool success, bool isPurchase)
 {
 	PlayerManager pm = GetGame().GetPlayerManager();
@@ -157,7 +182,76 @@ void BZ_DiscordHooks_LogShopTransaction(IEntity player, ADM_ShopMerchandise merc
 		color = BZ_DiscordConfig.COLOR_YELLOW;
 	}
 
-	BZ_DiscordWebhook.Send(title, desc, color, fields);
+	bool shouldSendDiscord = false;
+	if (isPurchase && success && BZ_DiscordConfig.LOG_PURCHASE)
+		shouldSendDiscord = true;
+	else if (isPurchase && !success && BZ_DiscordConfig.LOG_PURCHASE_FAIL)
+		shouldSendDiscord = true;
+	else if (!isPurchase && BZ_DiscordConfig.LOG_SALE)
+		shouldSendDiscord = true;
+
+	if (shouldSendDiscord)
+		BZ_DiscordWebhook.Send(title, desc, color, fields);
+
+	bool shouldSendPortal = false;
+	string portalEventType = "";
+	if (isPurchase && success && BZ_PortalConfig.LOG_PURCHASE)
+	{
+		shouldSendPortal = true;
+		portalEventType = "shop_purchase";
+	}
+	else if (isPurchase && !success && BZ_PortalConfig.LOG_PURCHASE_FAIL)
+	{
+		shouldSendPortal = true;
+		portalEventType = "shop_purchase_failed";
+	}
+	else if (!isPurchase && BZ_PortalConfig.LOG_SALE)
+	{
+		shouldSendPortal = true;
+		portalEventType = "shop_sale";
+	}
+
+	if (shouldSendPortal)
+	{
+		int portalWallet, portalLoose, portalTotal;
+		BZ_DiscordWebhook.GetPlayerBalanceDetailed(player, portalWallet, portalLoose, portalTotal);
+
+		string data = "{";
+		data += "\"player\":" + BZ_PortalWebhook.PlayerJson(playerId, playerName, player) + ",";
+		data += "\"item\":{\"name\":" + BZ_PortalWebhook.JsonString(itemName) + ",\"prefab\":" + BZ_PortalWebhook.JsonString(prefab) + "},";
+		data += "\"quantity\":" + quantity.ToString() + ",";
+		data += "\"success\":" + BZ_PortalWebhook.JsonBool(success) + ",";
+		data += "\"is_purchase\":" + BZ_PortalWebhook.JsonBool(isPurchase) + ",";
+		data += "\"price\":" + price.ToString() + ",";
+		data += "\"balance\":" + BZ_PortalWebhook.BalanceJson(portalWallet, portalLoose, portalTotal);
+		data += "}";
+		BZ_PortalWebhook.SendEvent(portalEventType, data);
+	}
+}
+
+//------------------------------------------------------------------------------------------------
+string BZ_DiscordHooks_GetEquippedWeaponName(IEntity character)
+{
+	if (!character)
+		return "(desconhecida)";
+
+	CharacterControllerComponent controller = CharacterControllerComponent.Cast(character.FindComponent(CharacterControllerComponent));
+	if (!controller)
+		return "(sem weapon manager)";
+
+	BaseWeaponManagerComponent weaponManager = controller.GetWeaponManagerComponent();
+	if (!weaponManager)
+		return "(sem weapon manager)";
+
+	BaseWeaponComponent currentWeapon = weaponManager.GetCurrent();
+	if (!currentWeapon || !currentWeapon.GetOwner())
+		return "(maos/vazio)";
+
+	IEntity weaponEntity = currentWeapon.GetOwner();
+	if (!weaponEntity || !weaponEntity.GetPrefabData())
+		return "(arma sem prefab)";
+
+	return BZ_DiscordWebhook.PrefabToName(weaponEntity.GetPrefabData().GetPrefabName());
 }
 
 // ============================================================================
@@ -275,9 +369,13 @@ modded class SCR_BaseGameMode
 
 		// Lazy-arm balance cache ticker on first server-side connect. Idempotent.
 		if (Replication.IsServer())
+		{
 			BZ_DiscordBalanceCache.ArmTicker();
+			BZ_PortalRewards.EnsureStarted();
+			BZ_PortalSessionTracker.EnsureLifeStart(playerId);
+		}
 
-		if (!Replication.IsServer() || !BZ_DiscordConfig.LOG_CONNECT)
+		if (!Replication.IsServer() || (!BZ_DiscordConfig.LOG_CONNECT && !BZ_PortalConfig.LOG_CONNECT))
 			return;
 
 		PlayerManager pm = GetGame().GetPlayerManager();
@@ -318,12 +416,15 @@ modded class SCR_BaseGameMode
 			newFields.Insert(new BZ_DiscordField("UID", uid));
 			newFields.Insert(new BZ_DiscordField("Players online", onlineCount.ToString()));
 
-			BZ_DiscordWebhook.Send(
+			if (BZ_DiscordConfig.LOG_CONNECT)
+				BZ_DiscordWebhook.Send(
 				"🆕 Player NOVO no servidor",
 				"**" + name + "** entrou pela primeira vez!",
 				BZ_DiscordConfig.COLOR_GREEN,
 				newFields
 			);
+
+			GetGame().GetCallqueue().CallLater(BZ_PortalHooks_SendConnectEvent, 3000, false, playerId, name, onlineCount, true);
 		}
 		else
 		{
@@ -331,7 +432,10 @@ modded class SCR_BaseGameMode
 			// entities are present in the inventory before we read the balance.
 			// Without the delay GetPlayerControlledEntity returns null and the
 			// balance shows $0 even when the player has cash.
-			GetGame().GetCallqueue().CallLater(BZ_DiscordHooks_SendConnectEvent, 3000, false, playerId, name, onlineCount);
+			if (BZ_DiscordConfig.LOG_CONNECT)
+				GetGame().GetCallqueue().CallLater(BZ_DiscordHooks_SendConnectEvent, 3000, false, playerId, name, onlineCount);
+			if (BZ_PortalConfig.LOG_CONNECT)
+				GetGame().GetCallqueue().CallLater(BZ_PortalHooks_SendConnectEvent, 3000, false, playerId, name, onlineCount, false);
 		}
 	}
 
@@ -343,7 +447,8 @@ modded class SCR_BaseGameMode
 		int walletTotal = 0;
 		int looseTotal = 0;
 		int grandTotal = 0;
-		if (Replication.IsServer() && BZ_DiscordConfig.LOG_DISCONNECT)
+		IEntity disconnectEntity = null;
+		if (Replication.IsServer() && (BZ_DiscordConfig.LOG_DISCONNECT || BZ_PortalConfig.LOG_DISCONNECT))
 		{
 			PlayerManager pm = GetGame().GetPlayerManager();
 			if (pm)
@@ -353,6 +458,7 @@ modded class SCR_BaseGameMode
 					name = string.Format("Player %1", playerId);
 
 				IEntity playerEntity = pm.GetPlayerControlledEntity(playerId);
+				disconnectEntity = playerEntity;
 				BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, walletTotal, looseTotal, grandTotal);
 
 				// Snapshot metabolism + bleeding state on disconnect. FMMetabolism2 freezes
@@ -396,7 +502,19 @@ modded class SCR_BaseGameMode
 			fields.Insert(new BZ_DiscordField("Valor Fora da Carteira", "$" + looseTotal.ToString()));
 			fields.Insert(new BZ_DiscordField("Total", "$" + grandTotal.ToString()));
 
-			BZ_DiscordWebhook.Send(
+			if (BZ_PortalConfig.LOG_DISCONNECT)
+			{
+				string data = "{";
+				data += "\"player\":" + BZ_PortalWebhook.PlayerJson(playerId, name, disconnectEntity) + ",";
+				data += "\"cause_code\":" + cause.ToString() + ",";
+				data += "\"timeout\":" + timeout.ToString() + ",";
+				data += "\"balance\":" + BZ_PortalWebhook.BalanceJson(walletTotal, looseTotal, grandTotal);
+				data += "}";
+				BZ_PortalWebhook.SendEvent("player_disconnected", data);
+			}
+
+			if (BZ_DiscordConfig.LOG_DISCONNECT)
+				BZ_DiscordWebhook.Send(
 				"🚪 Player saiu",
 				"**" + name + "** desconectou",
 				BZ_DiscordConfig.COLOR_GRAY,
@@ -484,6 +602,14 @@ modded class SCR_BaseGameMode
 		if (killer)
 			preKillerEnt = killer.GetInstigatorEntity();
 
+		float killDistance = -1;
+		string killWeapon = "(desconhecida)";
+		if (playerEntity && preKillerEnt && preKillerEnt != playerEntity)
+		{
+			killDistance = vector.Distance(playerEntity.GetOrigin(), preKillerEnt.GetOrigin());
+			killWeapon = BZ_DiscordHooks_GetEquippedWeaponName(preKillerEnt);
+		}
+
 		int killerLiveW = 0, killerLiveL = 0, killerLiveT = 0;
 		if (preKillerEnt && preKillerEnt != playerEntity)
 			BZ_DiscordWebhook.GetPlayerBalanceDetailed(preKillerEnt, killerLiveW, killerLiveL, killerLiveT);
@@ -512,7 +638,9 @@ modded class SCR_BaseGameMode
 
 		super.OnPlayerKilled(playerId, playerEntity, killerEntity, killer);
 
-		if (!Replication.IsServer() || !BZ_DiscordConfig.LOG_KILL)
+		bool shouldSendDiscordKill = BZ_DiscordConfig.LOG_KILL;
+		bool shouldSendPortalKill = BZ_PortalConfig.LOG_KILL;
+		if (!Replication.IsServer() || (!shouldSendDiscordKill && !shouldSendPortalKill))
 			return;
 
 		PlayerManager pm = GetGame().GetPlayerManager();
@@ -610,6 +738,10 @@ modded class SCR_BaseGameMode
 		ref array<ref BZ_DiscordField> fields = new array<ref BZ_DiscordField>();
 		fields.Insert(new BZ_DiscordField("Vítima", victimName));
 		fields.Insert(new BZ_DiscordField("Killer", killerName));
+		if (killDistance >= 0)
+			fields.Insert(new BZ_DiscordField("Distancia", string.Format("%1 m", Math.Round(killDistance))));
+		if (killDistance >= 0)
+			fields.Insert(new BZ_DiscordField("Arma", killWeapon));
 
 		// Victim balance (PRE-death snapshot — captured before super decoupled body)
 		if (isPvP)
@@ -637,6 +769,48 @@ modded class SCR_BaseGameMode
 			fields.Insert(new BZ_DiscordField("🔫 Saldo Killer — Total", "$" + preKillerTotal.ToString()));
 		}
 
-		BZ_DiscordWebhook.Send(title, desc, color, fields);
+		if (shouldSendPortalKill)
+		{
+			string killerType = "environment";
+			string killerPrefab = "";
+			if (isSuicide)
+				killerType = "suicide";
+			else if (isPvP)
+				killerType = "player";
+			else if (killerEnt)
+			{
+				if (killerEnt.GetPrefabData())
+					killerPrefab = killerEnt.GetPrefabData().GetPrefabName();
+
+				if (killerPrefab.IndexOf("Zombie") >= 0 || killerPrefab.IndexOf("Infected") >= 0 || killerPrefab.IndexOf("BaconZ") >= 0)
+					killerType = "zombie";
+				else if (killerPrefab.IndexOf("PLASTICBANDIT") >= 0 || killerPrefab.IndexOf("Bandit") >= 0)
+					killerType = "bandit";
+				else
+					killerType = "npc";
+			}
+
+			string data = "{";
+			data += "\"victim\":" + BZ_PortalWebhook.PlayerJson(playerId, victimName, playerEntity) + ",";
+			data += "\"victim_balance\":" + BZ_PortalWebhook.BalanceJson(preVictimWallet, preVictimLoose, preVictimTotal) + ",";
+			data += "\"victim_stats\":{\"hydration\":" + preHydration.ToString() + ",\"energy\":" + preEnergy.ToString() + ",\"bleeding\":" + BZ_PortalWebhook.JsonBool(preBleeding) + "},";
+			data += "\"alive_seconds\":" + BZ_PortalSessionTracker.GetAliveSeconds(playerId).ToString() + ",";
+			data += "\"killer\":{\"type\":" + BZ_PortalWebhook.JsonString(killerType) + ",\"name\":" + BZ_PortalWebhook.JsonString(killerName) + ",\"prefab\":" + BZ_PortalWebhook.JsonString(killerPrefab);
+			if (killerPlayerId > 0)
+				data += ",\"player\":" + BZ_PortalWebhook.PlayerJson(killerPlayerId, killerName, killerEnt);
+			data += "},";
+			data += "\"killer_balance\":" + BZ_PortalWebhook.BalanceJson(preKillerWallet, preKillerLoose, preKillerTotal) + ",";
+			data += "\"weapon\":" + BZ_PortalWebhook.WeaponJson(killerEnt) + ",";
+			data += "\"distance_m\":" + killDistance.ToString() + ",";
+			data += "\"is_pvp\":" + BZ_PortalWebhook.JsonBool(isPvP) + ",";
+			data += "\"is_suicide\":" + BZ_PortalWebhook.JsonBool(isSuicide) + ",";
+			data += "\"title\":" + BZ_PortalWebhook.JsonString(title);
+			data += "}";
+			BZ_PortalWebhook.SendEvent("player_killed", data);
+			BZ_PortalSessionTracker.MarkDeath(playerId);
+		}
+
+		if (shouldSendDiscordKill)
+			BZ_DiscordWebhook.Send(title, desc, color, fields);
 	}
 }

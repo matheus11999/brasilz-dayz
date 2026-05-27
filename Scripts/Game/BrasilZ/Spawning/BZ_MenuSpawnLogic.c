@@ -14,12 +14,22 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	// Reduzido pra 3s — sem death screen UI, player não tem tempo de espera longo aceitável.
 	protected static const int BZ_INCAP_FORCE_KILL_MS = 3000;     // 3s stuck → kill
 	protected static const int BZ_INCAP_CHECK_INTERVAL_MS = 1000; // checa a cada 1s
-	protected static const int BZ_DEATH_AUTOSPAWN_DELAY_MS = 500;
+	// BZ FIX v2 (post-PvP respawn stuck): wait 4s after death before auto-spawn so vanilla
+	// engine completes death cleanup (unbind PlayerController from destroyed corpse).
+	// Mirrors ReforgedZ_RespawnSystemComponent.QueueCharacterMenu(playerId, 4000) pattern.
+	// Without this delay, RequestRespawn fires while engine still has stale controlled
+	// binding → spawn rejected → 5 verify retries fail → player stuck until manual ESC
+	// PauseRespawn (which fires after the same 4s+ engine settle window).
+	// Cache buster: 2026-05-26 respawn-delay-4s deploy
+	protected static const int BZ_DEATH_AUTOSPAWN_DELAY_MS = 4000;
 	protected static const int BZ_DEATH_AUTOSPAWN_RETRY_MS = 250;
 	protected static const int BZ_DEATH_AUTOSPAWN_MAX_RETRIES = 2;
 	protected static const int BZ_DEATH_AUTOSPAWN_PENDING_CLEAR_MS = 7000;
 	protected static const int BZ_DEATH_AUTOSPAWN_VERIFY_MS = 1000;
-	protected static const int BZ_DEATH_AUTOSPAWN_VERIFY_MAX = 5;
+	// BZ FIX v3: increased from 5 to 90. Engine vanilla cleanup of PlayerController binding
+	// to destroyed-tracked corpse takes 30-60s (observed: pause button only succeeds at 50s
+	// mark when controlled becomes null). 90×1s = 90s window covers worst case.
+	protected static const int BZ_DEATH_AUTOSPAWN_VERIFY_MAX = 90;
 	protected static const int BZ_CONNECT_AUTOSPAWN_CHECK_MS = 15000;
 	protected ref map<int, int> m_mBzIncapStartTime = new map<int, int>();
 	protected static ref map<int, int> s_mBzDeathRespawnRetries = new map<int, int>();
@@ -627,7 +637,38 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			s_mBzDeathRespawnRetries.Set(playerId, retryCount);
 			if (retryCount >= BZ_DEATH_AUTOSPAWN_MAX_RETRIES)
 			{
-				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 still controls dead character after %2 retries - deleting stale controlled corpse before respawn.", playerId, retryCount), LogLevel.WARNING);
+				// BZ FIX v3: mirror pause button flow (BZ_ForceRandomRespawnFromButton).
+				// Pause button works because it CLEARS state fully + INSERTS fresh pending
+				// flag before DoSpawn_S. Auto-spawn skip-delete path was missing the full
+				// clear, leaving stale flags that engine reads as "spawn already pending"
+				// → silently drops the new RequestRespawn. Replicate exact pattern here.
+				SCR_BaseGameMode bzgmRetry = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+				if (bzgmRetry && bzgmRetry.BZ_IsTrackedCorpse(controlled))
+				{
+					Print(string.Format("[BrasilZ][RespawnFix] === BEGIN === Player %1 corpse tracked (30min loot). Applying pause-button-style spawn sequence.", playerId), LogLevel.NORMAL);
+
+					// Step 1: clear ALL stale state (retries + verify counters + pending flag)
+					BZ_ClearDeathRespawnState(playerId);
+					Print(string.Format("[BrasilZ][RespawnFix] Player %1 step 1/3: state cleared (retries+verify+pending all reset).", playerId), LogLevel.NORMAL);
+
+					// Step 2: insert FRESH pending flag (same as pause button L722)
+					s_aBzDeathRespawnPending.Insert(playerId);
+					s_mBzDeathRespawnVerifyRetries.Set(playerId, 0);
+					Print(string.Format("[BrasilZ][RespawnFix] Player %1 step 2/3: fresh pending flag inserted, verify counter=0.", playerId), LogLevel.NORMAL);
+
+					// Step 3: keep the tracked corpse. The spawn handler will explicitly
+					// hand over the newly spawned character using SetInitialMainEntity,
+					// matching the ReforgedZ/EPF pattern.
+					Print(string.Format("[BrasilZ][RespawnFix] Player %1 step 3/3: tracked corpse preserved, calling DoSpawn_S.", playerId), LogLevel.NORMAL);
+					DoSpawn_S(playerId);
+
+					GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+					GetGame().GetCallqueue().CallLater(BZ_ClearDeathRespawnPending, BZ_DEATH_AUTOSPAWN_PENDING_CLEAR_MS + BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+					Print(string.Format("[BrasilZ][RespawnFix] Player %1 === END === verify scheduled in %2ms. Watch for [RespawnFix] SUCCESS or FAIL next.", playerId, BZ_DEATH_AUTOSPAWN_VERIFY_MS), LogLevel.NORMAL);
+					return;
+				}
+
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 still controls dead character after %2 retries - corpse NOT tracked, deleting stale controlled corpse before respawn.", playerId, retryCount), LogLevel.WARNING);
 				BZ_DeleteStaleControlledCorpse(controlled, playerId);
 				GetGame().GetCallqueue().CallLater(BZ_AutoSpawnAfterDeath, 100, false, playerId);
 				return;
@@ -694,8 +735,16 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 				return;
 			}
 
-			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 force respawn deleting stale controlled corpse before spawn.", playerId), LogLevel.WARNING);
-			BZ_DeleteStaleControlledCorpse(controlled, playerId);
+			SCR_BaseGameMode bzgm = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+			if (bzgm && bzgm.BZ_IsTrackedCorpse(controlled))
+			{
+				Print(string.Format("[BrasilZ][PauseRespawn] Player %1 force respawn keeps tracked corpse lootable; spawn handler will hand over new character.", playerId), LogLevel.WARNING);
+			}
+			else
+			{
+				Print(string.Format("[BrasilZ][PauseRespawn] Player %1 force respawn deleting stale untracked corpse before spawn.", playerId), LogLevel.WARNING);
+				BZ_DeleteStaleControlledCorpse(controlled, playerId);
+			}
 		}
 
 		s_aBzDeathRespawnPending.Insert(playerId);
@@ -768,6 +817,8 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 		}
 
 		IEntity controlled = pm.GetPlayerControlledEntity(playerId);
+
+		// SUCCESS: player has alive controlled entity → respawn complete
 		if (controlled)
 		{
 			SCR_DamageManagerComponent dmg = SCR_DamageManagerComponent.GetDamageManager(controlled);
@@ -776,25 +827,51 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			{
 				s_mBzDeathRespawnRetries.Remove(playerId);
 				BZ_ClearDeathRespawnPending(playerId);
-				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 respawn verified with alive controlled entity.", playerId), LogLevel.NORMAL);
+				vector spawnPos = controlled.GetOrigin();
+				int verifyTotal = s_mBzDeathRespawnVerifyRetries.Get(playerId);
+				Print(string.Format("[BrasilZ][RespawnFix] === SUCCESS === Player %1 respawn verified with alive controlled entity at %2 (HP=%3, took %4 verify attempts).", playerId, spawnPos, dmg.GetHealth(), verifyTotal), LogLevel.NORMAL);
 				return;
 			}
-
-			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 respawn verify found dead controlled entity - deleting before retry.", playerId), LogLevel.WARNING);
-			BZ_DeleteStaleControlledCorpse(controlled, playerId);
 		}
 
 		int verifyCount = s_mBzDeathRespawnVerifyRetries.Get(playerId) + 1;
 		s_mBzDeathRespawnVerifyRetries.Set(playerId, verifyCount);
+
 		if (verifyCount > BZ_DEATH_AUTOSPAWN_VERIFY_MAX)
 		{
-			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 respawn verify failed after %2 retries - clearing pending so next death/connect can recover.", playerId, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.ERROR);
+			Print(string.Format("[BrasilZ][RespawnFix] === FAIL === Player %1 respawn verify failed after %2 retries (~%3s). Engine never released possession of dead corpse. Clearing pending — player must press ESC > Respawn manually.", playerId, BZ_DEATH_AUTOSPAWN_VERIFY_MAX, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.ERROR);
 			BZ_ClearDeathRespawnPending(playerId);
 			return;
 		}
 
-		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 has no alive controlled entity after respawn request - retry spawn verify %2/%3.", playerId, verifyCount, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.WARNING);
-		DoSpawn_S(playerId);
+		// Controlled state branches:
+		// A) controlled == null → engine RELEASED possession. Fire DoSpawn_S NOW.
+		// B) controlled is dead+tracked -> keep corpse and retry request; spawn handler performs explicit handover.
+		// C) controlled is dead+NOT tracked -> safe to delete + retry.
+		if (!controlled)
+		{
+			Print(string.Format("[BrasilZ][RespawnFix] Player %1 verify %2/%3 — controlled is NULL (engine released possession). Firing DoSpawn_S.", playerId, verifyCount, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.NORMAL);
+			DoSpawn_S(playerId);
+		}
+		else
+		{
+			SCR_BaseGameMode bzgmVerify = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+			bool isTracked = bzgmVerify && bzgmVerify.BZ_IsTrackedCorpse(controlled);
+			if (isTracked)
+			{
+				Print(string.Format("[BrasilZ][RespawnFix] Player %1 verify %2/%3 - still controls tracked dead corpse, retrying DoSpawn_S; corpse stays lootable.", playerId, verifyCount, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.WARNING);
+				DoSpawn_S(playerId);
+				GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
+				return;
+			}
+			else
+			{
+				Print(string.Format("[BrasilZ][AutoSpawn] Player %1 verify %2/%3 — dead controlled NOT tracked, deleting + firing DoSpawn_S.", playerId, verifyCount, BZ_DEATH_AUTOSPAWN_VERIFY_MAX), LogLevel.WARNING);
+				BZ_DeleteStaleControlledCorpse(controlled, playerId);
+				DoSpawn_S(playerId);
+			}
+		}
+
 		GetGame().GetCallqueue().CallLater(BZ_VerifyDeathRespawnCompleted, BZ_DEATH_AUTOSPAWN_VERIFY_MS, false, playerId);
 	}
 
@@ -803,6 +880,14 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 	{
 		if (!corpse || corpse.IsDeleted())
 			return;
+
+		SCR_BaseGameMode bzgm = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+		bool trackedCorpse = bzgm && bzgm.BZ_IsTrackedCorpse(corpse);
+		if (trackedCorpse)
+		{
+			Print(string.Format("[BrasilZ][RespawnFix] Player %1 stale controlled entity is tracked corpse; keeping it for loot window.", playerId), LogLevel.WARNING);
+			return;
+		}
 
 		RplComponent rpl = RplComponent.Cast(corpse.FindComponent(RplComponent));
 		if (rpl)
@@ -873,8 +958,101 @@ class BZ_MenuSpawnLogic : SCR_MenuSpawnLogic
 			return;
 		}
 
+		if (BZ_DirectSpawnAtPoint(playerId, prefab, spawnPoint))
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 -> direct random spawn at %2 (faction=%3, prefab=%4).", playerId, spawnPoint.GetSpawnPointName(), faction.GetFactionKey(), prefab), LogLevel.NORMAL);
+			return;
+		}
+
 		bzRespawn.RequestSpawnAtPointWithPrefab(playerId, prefab, spawnPoint);
-		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 -> random spawn requested at %2 (faction=%3, prefab=%4).", playerId, spawnPoint.GetSpawnPointName(), faction.GetFactionKey(), prefab), LogLevel.NORMAL);
+		Print(string.Format("[BrasilZ][AutoSpawn] Player %1 -> fallback RequestRespawn at %2 (faction=%3, prefab=%4).", playerId, spawnPoint.GetSpawnPointName(), faction.GetFactionKey(), prefab), LogLevel.WARNING);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected bool BZ_DirectSpawnAtPoint(int playerId, ResourceName prefab, BZ_SpawnPoint spawnPoint)
+	{
+		if (playerId <= 0 || prefab.IsEmpty() || !spawnPoint)
+			return false;
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return false;
+
+		SCR_PlayerController playerController = SCR_PlayerController.Cast(pm.GetPlayerController(playerId));
+		if (!playerController)
+			return false;
+
+		Resource resource = Resource.Load(prefab);
+		if (!resource || !resource.IsValid())
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 direct spawn failed: invalid prefab %2", playerId, prefab), LogLevel.ERROR);
+			return false;
+		}
+
+		vector pos, ypr;
+		spawnPoint.GetPosYPR(pos, ypr);
+
+		vector transform[4];
+		Math3D.AnglesToMatrix(ypr, transform);
+		transform[3] = pos;
+
+		EntitySpawnParams spawnParams();
+		spawnParams.TransformMode = ETransformMode.WORLD;
+		for (int i = 0; i < 4; i++)
+			spawnParams.Transform[i] = transform[i];
+
+		IEntity spawnedEntity = GetGame().SpawnEntityPrefab(resource, GetGame().GetWorld(), spawnParams);
+		if (!spawnedEntity)
+		{
+			Print(string.Format("[BrasilZ][AutoSpawn] Player %1 direct spawn failed: SpawnEntityPrefab returned null.", playerId), LogLevel.ERROR);
+			return false;
+		}
+
+		IEntity previous = pm.GetPlayerControlledEntity(playerId);
+		playerController.SetInitialMainEntity(spawnedEntity);
+
+		SCR_BaseGameMode gameMode = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+		if (gameMode)
+			gameMode.OnPlayerEntityChanged_S(playerId, previous, spawnedEntity);
+
+		SCR_RespawnComponent respawn = SCR_RespawnComponent.Cast(playerController.GetRespawnComponent());
+		if (respawn)
+			respawn.NotifySpawn(spawnedEntity);
+
+		BZ_PortalSessionTracker.MarkLifeStart(playerId);
+
+		if (BZ_PortalConfig.LOG_SPAWN)
+		{
+			string name = pm.GetPlayerName(playerId);
+			if (name.IsEmpty())
+				name = string.Format("Player %1", playerId);
+
+			int walletTotal, looseTotal, grandTotal;
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(spawnedEntity, walletTotal, looseTotal, grandTotal);
+
+			string data = "{";
+			data += "\"player\":" + BZ_PortalWebhook.PlayerJson(playerId, name, spawnedEntity) + ",";
+			data += "\"prefab\":" + BZ_PortalWebhook.JsonString(prefab) + ",";
+			data += "\"spawn_point\":" + BZ_PortalWebhook.JsonString(spawnPoint.GetSpawnPointName()) + ",";
+			data += "\"position\":" + BZ_PortalWebhook.VectorJson(pos) + ",";
+			data += "\"balance\":" + BZ_PortalWebhook.BalanceJson(walletTotal, looseTotal, grandTotal);
+			data += "}";
+			BZ_PortalWebhook.SendEvent("player_spawned", data);
+		}
+
+		string uid = BZ_Utils.GetPlayerUID(playerId);
+		if (!uid.IsEmpty())
+		{
+			BZ_PlayerDeathRegistry registry = BZ_PlayerDeathRegistry.GetInstance();
+			if (registry)
+			{
+				registry.ClearDead(uid);
+				registry.ClearDeadBody(playerId);
+			}
+		}
+
+		Print(string.Format("[BrasilZ][RespawnFix] Player %1 direct spawn handover complete at %2 (previous=%3, new=%4).", playerId, pos, previous, spawnedEntity), LogLevel.WARNING);
+		return true;
 	}
 	//------------------------------------------------------------------------------------------------
 	// Deferred surface lift for players who disconnected while submerged. Moves the entity

@@ -1,0 +1,8 @@
+GenericEntity {
+ ID "6450141C5F5201F1"
+ components {
+  BLD_OwnershipComponent "{64535D2E33029800}" {
+   MaxHealth 5000
+  }
+ }
+}

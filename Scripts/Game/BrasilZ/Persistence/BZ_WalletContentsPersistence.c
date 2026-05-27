@@ -143,6 +143,47 @@ class BZ_WalletContentsPersistence
 	}
 
 	//------------------------------------------------------------------------------------------------
+	// Server-side payout used by portal rewards. Adds real money notes to the
+	// player's existing wallet (or creates one) and persists it immediately.
+	static bool AddMoneyToPlayer(IEntity player, int amount)
+	{
+		if (!player || !Replication.IsServer() || amount <= 0)
+			return false;
+
+		EnsureStarted();
+
+		if (!BZ_ShopCurrencyHelper.EnsureCurrencyWallet(player))
+			return false;
+
+		SCR_InventoryStorageManagerComponent inventory = SCR_InventoryStorageManagerComponent.Cast(player.FindComponent(SCR_InventoryStorageManagerComponent));
+		if (!inventory)
+			return false;
+
+		array<IEntity> wallets = ADM_CurrencyComponent.FindCurrencyInInventory(inventory);
+		if (!wallets || wallets.IsEmpty())
+			return false;
+
+		IEntity wallet = wallets[0];
+		array<ref BZ_WalletMoneyRecord> records = {};
+		BuildMoneyRecords(amount, records);
+		int requested = CountRecords(records);
+		if (requested <= 0)
+			return false;
+
+		int inserted = InjectMoneyIntoWallet(wallet, records);
+		SaveEntityWallet(wallet);
+
+		if (inserted != requested)
+		{
+			Print(string.Format("[BrasilZ][Wallet] Portal payout partial: amount=%1 notes=%2/%3.", amount, inserted, requested), LogLevel.WARNING);
+			return false;
+		}
+
+		Print(string.Format("[BrasilZ][Wallet] Portal payout added $%1 to player wallet (%2 notes).", amount, inserted), LogLevel.NORMAL);
+		return true;
+	}
+
+	//------------------------------------------------------------------------------------------------
 	protected static void SaveWallet(string uuid, IEntity wallet)
 	{
 		if (!wallet || uuid.IsEmpty())
@@ -278,6 +319,31 @@ class BZ_WalletContentsPersistence
 		return prefab == NOTE_1000 || prefab == NOTE_500 || prefab == NOTE_100
 			|| prefab == NOTE_50 || prefab == NOTE_20 || prefab == NOTE_10
 			|| prefab == NOTE_5 || prefab == NOTE_1 || prefabName.Contains("dol.et");
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected static void BuildMoneyRecords(int amount, notnull array<ref BZ_WalletMoneyRecord> records)
+	{
+		records.Clear();
+		amount = AddDenomination(records, amount, 1000, NOTE_1000);
+		amount = AddDenomination(records, amount, 500, NOTE_500);
+		amount = AddDenomination(records, amount, 100, NOTE_100);
+		amount = AddDenomination(records, amount, 50, NOTE_50);
+		amount = AddDenomination(records, amount, 20, NOTE_20);
+		amount = AddDenomination(records, amount, 10, NOTE_10);
+		amount = AddDenomination(records, amount, 5, NOTE_5);
+		amount = AddDenomination(records, amount, 1, NOTE_1);
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected static int AddDenomination(notnull array<ref BZ_WalletMoneyRecord> records, int amount, int value, ResourceName prefab)
+	{
+		if (amount < value)
+			return amount;
+		int count = amount / value;
+		amount = amount - (count * value);
+		AddRecord(records, prefab, count);
+		return amount;
 	}
 
 	//------------------------------------------------------------------------------------------------

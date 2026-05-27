@@ -51,6 +51,16 @@ class BZ_MissionCooldownTracker
 				fields
 			);
 		}
+
+		if (BZ_PortalConfig.LOG_MISSION)
+		{
+			string data = "{";
+			data += "\"mission\":" + BZ_PortalWebhook.JsonString(posName) + ",";
+			data += "\"sub_idx\":" + subIdx.ToString() + ",";
+			data += "\"active_count\":" + s_aActiveSubIdx.Count().ToString();
+			data += "}";
+			BZ_PortalWebhook.SendEvent("mission_started", data);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -92,6 +102,17 @@ class BZ_MissionCooldownTracker
 			}
 
 			BZ_DiscordWebhook.Send(title, desc, color, fields);
+		}
+
+		if (BZ_PortalConfig.LOG_MISSION)
+		{
+			string data = "{";
+			data += "\"mission\":" + BZ_PortalWebhook.JsonString(posName) + ",";
+			data += "\"sub_idx\":" + subIdx.ToString() + ",";
+			data += "\"won\":" + BZ_PortalWebhook.JsonBool(won) + ",";
+			data += "\"cooldown_seconds\":" + BZ_MISSION_COOLDOWN_SEC.ToString();
+			data += "}";
+			BZ_PortalWebhook.SendEvent("mission_ended", data);
 		}
 	}
 

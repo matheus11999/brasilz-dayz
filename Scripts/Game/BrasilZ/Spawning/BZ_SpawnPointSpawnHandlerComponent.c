@@ -155,6 +155,7 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		}
 
 		PostProcessSpawnedPlayer(spawnedEntity, spawnPointData.GetPlayerId());
+		BZ_HandoverSpawnedPlayer(spawnedEntity, spawnPointData.GetPlayerId());
 
 		// Detailed spawn state log: faction, group, prefab, pos. Critical for debugging
 		// "player spawned but with wrong faction/group" complaints.
@@ -166,6 +167,37 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			Print(string.Format("[BrasilZ][SpawnHandler] Spawned player at %1", spawnPoint.GetOrigin()), LogLevel.NORMAL);
 
 		return result;
+	}
+
+	//------------------------------------------------------------------------------------------------
+	protected void BZ_HandoverSpawnedPlayer(IEntity spawnedEntity, int playerId)
+	{
+		if (!spawnedEntity || playerId <= 0)
+			return;
+
+		PlayerManager pm = GetGame().GetPlayerManager();
+		if (!pm)
+			return;
+
+		SCR_PlayerController playerController = SCR_PlayerController.Cast(pm.GetPlayerController(playerId));
+		if (!playerController)
+			return;
+
+		IEntity previous = pm.GetPlayerControlledEntity(playerId);
+		if (previous == spawnedEntity)
+			return;
+
+		playerController.SetInitialMainEntity(spawnedEntity);
+
+		SCR_BaseGameMode gameMode = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+		if (gameMode)
+			gameMode.OnPlayerEntityChanged_S(playerId, previous, spawnedEntity);
+
+		SCR_RespawnComponent respawn = SCR_RespawnComponent.Cast(playerController.GetRespawnComponent());
+		if (respawn)
+			respawn.NotifySpawn(spawnedEntity);
+
+		Print(string.Format("[BrasilZ][RespawnFix] Player %1 explicit handover to spawned entity complete (previous=%2, new=%3).", playerId, previous, spawnedEntity), LogLevel.WARNING);
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -242,6 +274,9 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		// Fresh spawn from menu — clear any death flag from previous life so future reconnects work.
 		if (playerId > 0)
 		{
+			if (Replication.IsServer())
+				BZ_PortalSessionTracker.MarkLifeStart(playerId);
+
 			string uid = BZ_Utils.GetPlayerUID(playerId);
 			if (!uid.IsEmpty())
 			{
@@ -260,7 +295,7 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 		// BZ_SpawnProtection.Apply(spawnedEntity, playerId);
 
 		// Discord webhook: notify spawn event. Delay 1.5s to let prefab inventory replicate.
-		if (playerId > 0 && Replication.IsServer() && BZ_DiscordConfig.LOG_SPAWN)
+		if (playerId > 0 && Replication.IsServer() && (BZ_DiscordConfig.LOG_SPAWN || BZ_PortalConfig.LOG_SPAWN))
 			GetGame().GetCallqueue().CallLater(BZ_NotifyDiscordSpawn, 1500, false, playerId, spawnedEntity);
 
 		// No-op for groups: BZ_GroupsManagerComponent.OnPlayerRegistered + OnPlayerAuditSuccess
@@ -307,6 +342,24 @@ class BZ_SpawnPointSpawnHandlerComponent : SCR_SpawnPointSpawnHandlerComponent
 			BZ_DiscordConfig.COLOR_BLUE,
 			fields
 		);
+
+		if (BZ_PortalConfig.LOG_SPAWN)
+		{
+			int walletTotal, looseTotal, grandTotal;
+			BZ_DiscordWebhook.GetPlayerBalanceDetailed(playerEntity, walletTotal, looseTotal, grandTotal);
+
+			string prefab = "";
+			if (playerEntity && playerEntity.GetPrefabData())
+				prefab = playerEntity.GetPrefabData().GetPrefabName();
+
+			string data = "{";
+			data += "\"player\":" + BZ_PortalWebhook.PlayerJson(playerId, name, playerEntity) + ",";
+			data += "\"prefab\":" + BZ_PortalWebhook.JsonString(prefab) + ",";
+			data += "\"position\":" + BZ_PortalWebhook.VectorJson(pos) + ",";
+			data += "\"balance\":" + BZ_PortalWebhook.BalanceJson(walletTotal, looseTotal, grandTotal);
+			data += "}";
+			BZ_PortalWebhook.SendEvent("player_spawned", data);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------
